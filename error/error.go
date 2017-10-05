@@ -1,4 +1,4 @@
-package oerror
+package error
 
 import "github.com/satori/go.uuid"
 

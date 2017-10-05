@@ -1,4 +1,4 @@
-package ologger
+package logger
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/betit/orion/go/env"
+	"github.com/betit/orion-go-sdk/env"
 	"github.com/duythinht/gelf/client"
 )
 

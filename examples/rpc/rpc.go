@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	orion "github.com/betit/orion/go"
+	orion "github.com/betit/orion-go-sdk"
 )
 
 var (

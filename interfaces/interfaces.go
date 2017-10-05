@@ -1,7 +1,9 @@
 package interfaces
 
-import "github.com/betit/orion/go/request"
-import "github.com/betit/orion/go/logger"
+import (
+	"github.com/betit/orion-go-sdk/logger"
+	"github.com/betit/orion-go-sdk/request"
+)
 
 // Codec interface
 type Codec interface {
@@ -21,8 +23,8 @@ type Transport interface {
 
 // Tracer interface
 type Tracer interface {
-	Trace(*orequest.Request) func()
+	Trace(*request.Request) func()
 }
 
 // Logger interface
-type Logger = ologger.Logger
+type Logger = logger.Logger

@@ -1,4 +1,4 @@
-package ologger
+package logger
 
 const (
 	// EMERGENCY level - system is unusable

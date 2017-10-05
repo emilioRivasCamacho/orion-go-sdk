@@ -1,7 +1,7 @@
-package omsgpack
+package msgpack
 
 import (
-	"github.com/vmihailenco/msgpack"
+	msgp "github.com/vmihailenco/msgpack"
 )
 
 // MSGPack object
@@ -14,10 +14,10 @@ func New() *MSGPack {
 
 // Encode values
 func (c *MSGPack) Encode(v ...interface{}) ([]byte, error) {
-	return msgpack.Marshal(v...)
+	return msgp.Marshal(v...)
 }
 
 // Decode values
 func (c *MSGPack) Decode(b []byte, v ...interface{}) error {
-	return msgpack.Unmarshal(b, v...)
+	return msgp.Unmarshal(b, v...)
 }

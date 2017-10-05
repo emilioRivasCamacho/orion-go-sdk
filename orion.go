@@ -5,12 +5,12 @@ import (
 	"log"
 	"strings"
 
-	"github.com/betit/orion/go/codec/orion_msgpack"
-	"github.com/betit/orion/go/error"
-	"github.com/betit/orion/go/interfaces"
-	"github.com/betit/orion/go/logger"
-	"github.com/betit/orion/go/tracer"
-	"github.com/betit/orion/go/transport/orion_nats"
+	"github.com/betit/orion-go-sdk/codec/msgpack"
+	oerror "github.com/betit/orion-go-sdk/error"
+	"github.com/betit/orion-go-sdk/interfaces"
+	"github.com/betit/orion-go-sdk/logger"
+	"github.com/betit/orion-go-sdk/tracer"
+	"github.com/betit/orion-go-sdk/transport/nats"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -34,19 +34,19 @@ func New(name string, options ...Option) *Service {
 	}
 
 	if opts.Transport == nil {
-		opts.Transport = onats.New()
+		opts.Transport = nats.New()
 	}
 
 	if opts.Codec == nil {
-		opts.Codec = omsgpack.New()
+		opts.Codec = msgpack.New()
 	}
 
 	if opts.Tracer == nil {
-		opts.Tracer = otracer.New(name)
+		opts.Tracer = tracer.New(name)
 	}
 
 	if opts.Logger == nil {
-		opts.Logger = ologger.New(name)
+		opts.Logger = logger.New(name)
 	}
 
 	return &Service{
@@ -120,7 +120,7 @@ func (s *Service) Handle(path string, handler func(*Request) *Response) {
 		}
 		s.Logger.
 			CreateMessage(path).
-			SetLevel(ologger.INFO).
+			SetLevel(logger.INFO).
 			SetID(req.GetID()).
 			SetMap(params).
 			Send()
@@ -130,7 +130,7 @@ func (s *Service) Handle(path string, handler func(*Request) *Response) {
 		if res.Error != nil {
 			s.Logger.
 				CreateMessage(path).
-				SetLevel(ologger.ERROR).
+				SetLevel(logger.ERROR).
 				SetID(req.GetID()).
 				SetParams(res.Error).
 				Send()

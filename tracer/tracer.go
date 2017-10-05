@@ -1,4 +1,4 @@
-package otracer
+package tracer
 
 import (
 	"fmt"
@@ -8,8 +8,8 @@ import (
 	"github.com/opentracing/opentracing-go/ext"
 	zipkin "github.com/openzipkin/zipkin-go-opentracing"
 
-	"github.com/betit/orion/go/env"
-	"github.com/betit/orion/go/request"
+	"github.com/betit/orion-go-sdk/env"
+	"github.com/betit/orion-go-sdk/request"
 )
 
 var (
@@ -75,7 +75,7 @@ func New(service string) Tracer {
 }
 
 // Trace request
-func (t Tracer) Trace(req *orequest.Request) Close {
+func (t Tracer) Trace(req *request.Request) Close {
 	ctx, _ := tracer.Extract(opentracing.TextMap, opentracing.HTTPHeadersCarrier(req.TracerData))
 	span := tracer.StartSpan(req.Path, opentracing.ChildOf(ctx))
 	ext.SpanKindRPCClient.Set(span)

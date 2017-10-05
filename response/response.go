@@ -1,9 +1,9 @@
-package oresponse
+package response
 
 import (
 	"encoding/json"
 
-	"github.com/betit/orion/go/error"
+	oerror "github.com/betit/orion-go-sdk/error"
 )
 
 // Response from the service

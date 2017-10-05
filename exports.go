@@ -1,16 +1,16 @@
 package orion
 
 import (
-	"github.com/betit/orion/go/error"
-	"github.com/betit/orion/go/request"
-	"github.com/betit/orion/go/response"
+	oerror "github.com/betit/orion-go-sdk/error"
+	"github.com/betit/orion-go-sdk/request"
+	"github.com/betit/orion-go-sdk/response"
 )
 
 // Request from microservice
-type Request = orequest.Request
+type Request = request.Request
 
 // Response from microservice
-type Response = oresponse.Response
+type Response = response.Response
 
 // Error for orion
 type Error = oerror.Error
