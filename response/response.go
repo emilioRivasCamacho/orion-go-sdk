@@ -12,8 +12,8 @@ type Response struct {
 	Error   *oerror.Error `json:"error" msgpack:"error"`
 }
 
-// GetPayload as type
-func (r *Response) GetPayload(to interface{}) error {
+// ParsePayload as type
+func (r *Response) ParsePayload(to interface{}) error {
 	return json.Unmarshal(r.Payload, to)
 }
 
