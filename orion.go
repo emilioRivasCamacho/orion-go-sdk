@@ -82,23 +82,8 @@ func (s *Service) Decode(data []byte, to interface{}) error {
 
 // HandleWithoutLogging enabled
 func (s *Service) HandleWithoutLogging(path string, handler func(*Request) *Response) {
-	route := fmt.Sprintf("%s.%s", s.Name, path)
-	s.transport.Handle(route, s.Name, func(data []byte) []byte {
-		var req Request
-		err := s.codec.Decode(data, &req)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		res := handler(&req)
-
-		dat, err := s.codec.Encode(res)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		return dat
-	})
+	logging := false
+	s.handle(path, logging, handler)
 }
 
 // Handle has enabled logging. What that means is when the request
@@ -106,6 +91,11 @@ func (s *Service) HandleWithoutLogging(path string, handler func(*Request) *Resp
 // response is returned, the service will check for error and if there is such,
 // the error will be logged
 func (s *Service) Handle(path string, handler func(*Request) *Response) {
+	logging := true
+	s.handle(path, logging, handler)
+}
+
+func (s *Service) handle(path string, logging bool, handler func(*Request) *Response) {
 	route := fmt.Sprintf("%s.%s", s.Name, path)
 	s.transport.Handle(route, s.Name, func(data []byte) []byte {
 		var req Request
@@ -118,16 +108,19 @@ func (s *Service) Handle(path string, handler func(*Request) *Response) {
 			"raw":  string(req.Params),
 			"meta": req.Meta,
 		}
-		s.Logger.
-			CreateMessage(path).
-			SetLevel(logger.INFO).
-			SetID(req.GetID()).
-			SetMap(params).
-			Send()
+
+		if logging {
+			s.Logger.
+				CreateMessage(path).
+				SetLevel(logger.INFO).
+				SetID(req.GetID()).
+				SetMap(params).
+				Send()
+		}
 
 		res := handler(&req)
 
-		if res.Error != nil {
+		if res.Error != nil && logging {
 			s.Logger.
 				CreateMessage(path).
 				SetLevel(logger.ERROR).
