@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -42,8 +41,7 @@ func runService(callback func()) {
 
 func dummyHandle(req *orion.Request) *orion.Response {
 	params := complexStruct{}
-	json.Unmarshal(req.Params, &params)
-	fmt.Printf("req meta %+v \n", req.Meta)
+	req.GetParams(&params)
 	from := req.Meta["time"]
 	metaTime, _ := time.Parse(dateLayout, from)
 	fmt.Printf("parsed meta time %+v\n", metaTime)
@@ -60,8 +58,7 @@ func dummyHandle(req *orion.Request) *orion.Response {
 	}
 	svc.Logger.CreateMessage("dummy").SetLevel(6).SetID(req.GetID()).SetMap(m).Send()
 
-	res.Error = orion.ServiceError("1021312")
-	res.Error.SetMessage("some error message")
+	res.Error = orion.ServiceError("1021312").SetMessage("some error message")
 	res.SetPayload(params)
 	return &res
 }
@@ -83,25 +80,21 @@ func runClient() {
 			Now: time.Now().Format(dateLayout),
 		},
 	}
-	req.SetParams(&c)
+	req.SetParams(c)
 
 	res := svc.Call(&req)
 
-	// first approach
 	payload := &complexStruct{}
-	res.GetPayload(&payload)
-	fmt.Printf("response approach 1 %+v\n", payload)
-
-	// second approach
-	result := &complexStruct{}
-	json.Unmarshal(res.Payload, result)
-	fmt.Printf("response approach 2 %+v\n", result)
+	res.ParsePayload(&payload)
 }
 
 func traceRequests() {
 	req := orion.Request{}
 	req.Path = "/examples-go/level1"
-	svc.Call(&req)
+	res := svc.Call(&req)
+	p := complexStruct{}
+	res.ParsePayload(&p)
+	fmt.Printf("traceRequests response %+v\n", p)
 	fmt.Printf("req id %+v \n", req.GetID())
 }
 
@@ -122,6 +115,5 @@ func level3Handle(req *orion.Request) *orion.Response {
 
 func level4Handle(req *orion.Request) *orion.Response {
 	req.Path = "/examples-node/dummy"
-	svc.Call(req)
-	return &orion.Response{}
+	return svc.Call(req)
 }

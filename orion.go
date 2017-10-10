@@ -37,9 +37,8 @@ func New(name string, options ...Option) *Service {
 		opts.Transport = nats.New()
 	}
 
-	if opts.Codec == nil {
-		opts.Codec = msgpack.New()
-	}
+	// as for now, the codec will always be msgpack
+	opts.Codec = msgpack.New()
 
 	if opts.Tracer == nil {
 		opts.Tracer = tracer.New(name)

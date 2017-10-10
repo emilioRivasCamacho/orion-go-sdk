@@ -1,7 +1,7 @@
 package request
 
 import (
-	"encoding/json"
+	"github.com/betit/orion-go-sdk/codec/msgpack"
 )
 
 // Request object
@@ -13,9 +13,11 @@ type Request struct {
 	CallTimeout *int                `json:"callTimeout" msgpack:"callTimeout"`
 }
 
+var codec = msgpack.New()
+
 // GetParams as type
 func (r *Request) GetParams(to interface{}) error {
-	return json.Unmarshal(r.Params, to)
+	return codec.Decode(r.Params, to)
 }
 
 // GetID as type
@@ -25,7 +27,7 @@ func (r *Request) GetID() string {
 
 // SetParams for type
 func (r *Request) SetParams(params interface{}) error {
-	b, err := json.Marshal(params)
+	b, err := codec.Encode(params)
 	r.Params = b
 	return err
 }

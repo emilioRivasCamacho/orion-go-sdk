@@ -1,8 +1,7 @@
 package response
 
 import (
-	"encoding/json"
-
+	"github.com/betit/orion-go-sdk/codec/msgpack"
 	oerror "github.com/betit/orion-go-sdk/error"
 )
 
@@ -12,14 +11,16 @@ type Response struct {
 	Error   *oerror.Error `json:"error" msgpack:"error"`
 }
 
+var codec = msgpack.New()
+
 // ParsePayload as type
 func (r *Response) ParsePayload(to interface{}) error {
-	return json.Unmarshal(r.Payload, to)
+	return codec.Decode(r.Payload, to)
 }
 
 // SetPayload for type
 func (r *Response) SetPayload(payload interface{}) error {
-	b, err := json.Marshal(payload)
+	b, err := codec.Encode(payload)
 	r.Payload = b
 	return err
 }
