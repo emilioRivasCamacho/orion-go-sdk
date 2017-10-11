@@ -19,9 +19,9 @@ type Service struct {
 	ID          string
 	Name        string
 	CallTimeOut int
-	codec       interfaces.Codec
-	transport   interfaces.Transport
-	tracer      interfaces.Tracer
+	Codec       interfaces.Codec
+	Transport   interfaces.Transport
+	Tracer      interfaces.Tracer
 	Logger      interfaces.Logger
 }
 
@@ -52,31 +52,31 @@ func New(name string, options ...Option) *Service {
 		ID:          uuid.NewV4().String(),
 		Name:        name,
 		CallTimeOut: 200,
-		codec:       opts.Codec,
-		transport:   opts.Transport,
-		tracer:      opts.Tracer,
+		Codec:       opts.Codec,
+		Transport:   opts.Transport,
+		Tracer:      opts.Tracer,
 		Logger:      opts.Logger,
 	}
 }
 
 // Emit to services
 func (s *Service) Emit(topic string, data interface{}) error {
-	msg, err := s.codec.Encode(data)
+	msg, err := s.Codec.Encode(data)
 	if err != nil {
 		return err
 	}
-	return s.transport.Publish(topic, msg)
+	return s.Transport.Publish(topic, msg)
 }
 
 // On service emit
 func (s *Service) On(topic string, handler func([]byte)) {
 	subject := fmt.Sprintf("%s:%s", s.Name, topic)
-	s.transport.Subscribe(subject, s.Name, handler)
+	s.Transport.Subscribe(subject, s.Name, handler)
 }
 
 // Decode bytes to passed interface
 func (s *Service) Decode(data []byte, to interface{}) error {
-	return s.codec.Decode(data, &to)
+	return s.Codec.Decode(data, &to)
 }
 
 // HandleWithoutLogging enabled
@@ -96,9 +96,9 @@ func (s *Service) Handle(path string, handler func(*Request) *Response) {
 
 func (s *Service) handle(path string, logging bool, handler func(*Request) *Response) {
 	route := fmt.Sprintf("%s.%s", s.Name, path)
-	s.transport.Handle(route, s.Name, func(data []byte) []byte {
+	s.Transport.Handle(route, s.Name, func(data []byte) []byte {
 		var req Request
-		err := s.codec.Decode(data, &req)
+		err := s.Codec.Decode(data, &req)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -128,7 +128,7 @@ func (s *Service) handle(path string, logging bool, handler func(*Request) *Resp
 				Send()
 		}
 
-		dat, err := s.codec.Encode(res)
+		dat, err := s.Codec.Encode(res)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -139,10 +139,10 @@ func (s *Service) handle(path string, logging bool, handler func(*Request) *Resp
 
 // Call orion service
 func (s *Service) Call(request *Request) *Response {
-	closeTracer := s.tracer.Trace(request)
+	closeTracer := s.Tracer.Trace(request)
 	response := Response{}
 
-	encoded, err := s.codec.Encode(request)
+	encoded, err := s.Codec.Encode(request)
 	if err != nil {
 		response.Error = oerror.New("ORION_ENCODE")
 		response.Error.SetMessage(err.Error())
@@ -150,13 +150,13 @@ func (s *Service) Call(request *Request) *Response {
 	}
 
 	path := replaceOmitEmpty(request.Path, "/", ".")
-	res, err := s.transport.Request(path, encoded, s.getTimeout(request))
+	res, err := s.Transport.Request(path, encoded, s.getTimeout(request))
 	if err != nil {
 		response.Error = oerror.New("ORION_TRANSPORT")
 		response.Error.SetMessage(err.Error())
 		return &response
 	}
-	err = s.codec.Decode(res, &response)
+	err = s.Codec.Decode(res, &response)
 	if err != nil {
 		response.Error = oerror.New("ORION_DECODE")
 		response.Error.SetMessage(err.Error())
@@ -168,12 +168,12 @@ func (s *Service) Call(request *Request) *Response {
 
 // Listen to the transport protocol
 func (s *Service) Listen(callback func()) {
-	s.transport.Listen(callback)
+	s.Transport.Listen(callback)
 }
 
 // Close the transport protocol
 func (s *Service) Close() {
-	s.transport.Close()
+	s.Transport.Close()
 }
 
 // String return the name and the id of the service
