@@ -5,6 +5,7 @@ import (
 	"time"
 
 	orion "github.com/betit/orion-go-sdk"
+	logger "github.com/betit/orion-go-sdk/logger"
 )
 
 var (
@@ -24,6 +25,14 @@ type complexStruct struct {
 
 func main() {
 	runService(func() {
+		svc.Logger.CreateMessage("TEST").SetLevel(logger.CRITICAL).Send()
+		svc.Logger.CreateMessage("TEST").SetLevel(logger.EMERGENCY).Send()
+		svc.Logger.CreateMessage("TEST").SetLevel(logger.ERROR).Send()
+		svc.Logger.CreateMessage("TEST").SetLevel(logger.ALERT).Send()
+		svc.Logger.CreateMessage("TEST").SetLevel(logger.WARNING).Send()
+		svc.Logger.CreateMessage("TEST").SetLevel(logger.INFO).Send()
+		svc.Logger.CreateMessage("TEST").SetLevel(logger.NOTICE).Send()
+		svc.Logger.CreateMessage("TEST").SetLevel(logger.DEBUG).Send()
 		runClient()
 		traceRequests()
 	})
@@ -50,13 +59,13 @@ func dummyHandle(req *orion.Request) *orion.Response {
 
 	res := orion.Response{}
 
-	svc.Logger.CreateMessage("dummy").SetLevel(6).SetID(req.GetID()).SetParams([]byte(from)).Send()
+	svc.Logger.CreateMessage("dummy").SetLevel(logger.INFO).SetID(req.GetID()).SetParams([]byte(from)).Send()
 
 	m := map[string]interface{}{
 		"test": "params",
 		"what": "wtf",
 	}
-	svc.Logger.CreateMessage("dummy").SetLevel(6).SetID(req.GetID()).SetMap(m).Send()
+	svc.Logger.CreateMessage("dummy").SetLevel(logger.INFO).SetID(req.GetID()).SetMap(m).Send()
 
 	res.Error = orion.ServiceError("1021312").SetMessage("some error message")
 	res.SetPayload(params)

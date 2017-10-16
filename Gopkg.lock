@@ -12,12 +12,6 @@
   revision = "b66b66ff52f2837adffc4ff931eabab5ae2809f1"
 
 [[projects]]
-  branch = "dev"
-  name = "github.com/betit/orion"
-  packages = ["go","go/codec/orion_msgpack","go/env","go/error","go/interfaces","go/logger","go/request","go/response","go/tracer","go/transport","go/transport/orion_nats"]
-  revision = "72b75985674b524bc4c178cf2a9d6a109ae42158"
-
-[[projects]]
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   revision = "a476722483882dd40b8111f0eb64e1d7f43f56e4"
@@ -91,6 +85,12 @@
   version = "v1.0.0"
 
 [[projects]]
+  name = "github.com/op/go-logging"
+  packages = ["."]
+  revision = "b2cb9fa56473e98db8caba80237377e83fe44db5"
+  version = "v1"
+
+[[projects]]
   branch = "master"
   name = "github.com/opentracing-contrib/go-observer"
   packages = ["."]
@@ -153,6 +153,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "431ce8bff1ff2c7f182f23361dbc2d704fa80a0604619ecf5e03ddea2304fde8"
+  inputs-digest = "b0911cfbc652a29ce5c0acc3ebbacaae62e6ce98e9ed36dd7f4b1cd3ba29caef"
   solver-name = "gps-cdcl"
   solver-version = 1

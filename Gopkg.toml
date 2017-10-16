@@ -44,3 +44,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/duythinht/gelf"
+
+[[constraint]]
+  name = "github.com/op/go-logging"
+  version = "1.0.0"

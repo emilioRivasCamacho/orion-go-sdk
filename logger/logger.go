@@ -3,9 +3,11 @@ package logger
 import (
 	"encoding/json"
 	"flag"
-	"log"
+	"os"
 	"strconv"
 	"time"
+
+	"github.com/op/go-logging"
 
 	"github.com/betit/orion-go-sdk/env"
 	"github.com/duythinht/gelf/client"
@@ -19,6 +21,7 @@ var (
 	// Port for graylog
 	Port    = ""
 	verbose = flag.Bool("verbose", false, "Enable verbose (console) logging")
+	log     *logging.Logger
 )
 
 // Graylog logger
@@ -36,6 +39,7 @@ type Logger interface {
 func init() {
 	flag.Parse()
 	setVariables()
+	initConsoleLogger()
 }
 
 // New graylog logger
@@ -124,10 +128,35 @@ func (m *Message) Send() {
 	data := string(b)
 
 	if *verbose {
-		log.Println(data)
+		m.log(data)
 	}
 
 	m.logger.Send(data)
+}
+
+func (m *Message) log(data string) {
+
+	switch m.args["level"] {
+	case EMERGENCY:
+		log.Critical("Emergency %s", data)
+	case CRITICAL:
+		log.Critical("Critical %s", data)
+	case ERROR:
+		log.Error("Error %s", data)
+	case ALERT:
+		log.Warning("Alert %s", data)
+	case WARNING:
+		log.Warning("Warning %s", data)
+	case NOTICE:
+		log.Notice("Notice %s", data)
+	case INFO:
+		log.Debug("Info %s", data)
+	case DEBUG:
+		log.Info("Debug %s", data)
+	default:
+		log.Info("Debug %s", data)
+	}
+
 }
 
 func setVariables() {
@@ -137,4 +166,13 @@ func setVariables() {
 	if Port == "" {
 		Port = env.Get("ORION_LOGGER_PORT", "12201")
 	}
+}
+
+func initConsoleLogger() {
+	log = logging.MustGetLogger("Orion")
+	backend := logging.NewLogBackend(os.Stdout, "", 0)
+	format := logging.MustStringFormatter(
+		`%{color}%{time:15:04:05.000} ▶ %{color:reset} %{message}`,
+	)
+	logging.SetBackend(logging.NewBackendFormatter(backend, format))
 }
