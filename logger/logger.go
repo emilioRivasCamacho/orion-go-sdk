@@ -124,7 +124,7 @@ func (m *Message) Send() {
 	data := string(b)
 
 	if *verbose {
-		println(data)
+		log.Println(data)
 	}
 
 	m.logger.Send(data)
