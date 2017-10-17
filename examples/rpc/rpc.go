@@ -59,7 +59,7 @@ func dummyHandle(req *orion.Request) *orion.Response {
 
 	res := orion.Response{}
 
-	svc.Logger.CreateMessage("dummy").SetLevel(logger.INFO).SetID(req.GetID()).SetParams([]byte(from)).Send()
+	svc.Logger.CreateMessage("dummy").SetLevel(logger.INFO).SetID(req.GetID()).SetParams(from).Send()
 
 	m := map[string]interface{}{
 		"test": "params",

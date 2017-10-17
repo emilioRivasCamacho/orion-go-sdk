@@ -1,6 +1,7 @@
 package orion
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -103,30 +104,11 @@ func (s *Service) handle(path string, logging bool, handler func(*Request) *Resp
 			log.Fatal(err)
 		}
 
-		params := map[string]interface{}{
-			"raw":  string(req.Params),
-			"meta": req.Meta,
-		}
-
-		if logging {
-			s.Logger.
-				CreateMessage(path).
-				SetLevel(logger.INFO).
-				SetID(req.GetID()).
-				SetMap(params).
-				Send()
-		}
+		s.logRequest(&req, logging)
 
 		res := handler(&req)
 
-		if res.Error != nil && logging {
-			s.Logger.
-				CreateMessage(path).
-				SetLevel(logger.ERROR).
-				SetID(req.GetID()).
-				SetParams(res.Error).
-				Send()
-		}
+		s.logResponse(&req, res, logging)
 
 		dat, err := s.Codec.Encode(res)
 		if err != nil {
@@ -179,6 +161,39 @@ func (s *Service) Close() {
 // String return the name and the id of the service
 func (s *Service) String() string {
 	return fmt.Sprintf("%s-%s", s.Name, s.ID)
+}
+
+func (s *Service) logRequest(req *Request, logging bool) {
+	if logging {
+		var in interface{}
+
+		s.Decode(req.Params, &in)
+
+		out, _ := json.Marshal(in)
+
+		params := map[string]interface{}{
+			"raw":  string(out),
+			"meta": req.Meta,
+		}
+
+		s.Logger.
+			CreateMessage(req.Path).
+			SetLevel(logger.INFO).
+			SetID(req.GetID()).
+			SetMap(params).
+			Send()
+	}
+}
+
+func (s *Service) logResponse(req *Request, res *Response, logging bool) {
+	if res.Error != nil && logging {
+		s.Logger.
+			CreateMessage(req.Path).
+			SetLevel(logger.ERROR).
+			SetID(req.GetID()).
+			SetParams(res.Error).
+			Send()
+	}
 }
 
 func (s *Service) getTimeout(request *Request) int {
