@@ -6,11 +6,11 @@ import (
 
 // Request object
 type Request struct {
-	TracerData  map[string][]string `json:"tracerData" msgpack:"tracerData"`
-	Path        string              `json:"path" msgpack:"path"`
-	Params      []byte              `json:"params" msgpack:"params"`
-	Meta        map[string]string   `json:"meta" msgpack:"meta"`
-	CallTimeout *int                `json:"callTimeout" msgpack:"callTimeout"`
+	TracerData map[string][]string `json:"tracerData" msgpack:"tracerData"`
+	Path       string              `json:"path" msgpack:"path"`
+	Params     []byte              `json:"params" msgpack:"params"`
+	Meta       map[string]string   `json:"meta" msgpack:"meta"`
+	Timeout    *int                `json:"timeout" msgpack:"timeout"`
 }
 
 var codec = msgpack.New()

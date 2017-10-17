@@ -79,8 +79,8 @@ func runClient() {
 			"sid":  "1234567",
 			"time": time.Now().Format(dateLayout),
 		},
-		Path:        "/examples-go/dummy",
-		CallTimeout: &timeout,
+		Path:    "/examples-go/dummy",
+		Timeout: &timeout,
 	}
 	c := complexStruct{
 		Bar: simpleStruct{

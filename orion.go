@@ -16,13 +16,13 @@ import (
 
 // Service for orion
 type Service struct {
-	ID          string
-	Name        string
-	CallTimeOut int
-	Codec       interfaces.Codec
-	Transport   interfaces.Transport
-	Tracer      interfaces.Tracer
-	Logger      interfaces.Logger
+	ID        string
+	Name      string
+	Timeout   int
+	Codec     interfaces.Codec
+	Transport interfaces.Transport
+	Tracer    interfaces.Tracer
+	Logger    interfaces.Logger
 }
 
 // New orion service
@@ -49,13 +49,13 @@ func New(name string, options ...Option) *Service {
 	}
 
 	return &Service{
-		ID:          uuid.NewV4().String(),
-		Name:        name,
-		CallTimeOut: 200,
-		Codec:       opts.Codec,
-		Transport:   opts.Transport,
-		Tracer:      opts.Tracer,
-		Logger:      opts.Logger,
+		ID:        uuid.NewV4().String(),
+		Name:      name,
+		Timeout:   200,
+		Codec:     opts.Codec,
+		Transport: opts.Transport,
+		Tracer:    opts.Tracer,
+		Logger:    opts.Logger,
 	}
 }
 
@@ -182,10 +182,10 @@ func (s *Service) String() string {
 }
 
 func (s *Service) getTimeout(request *Request) int {
-	if request.CallTimeout != nil {
-		return *request.CallTimeout
+	if request.Timeout != nil {
+		return *request.Timeout
 	}
-	return s.CallTimeOut
+	return s.Timeout
 }
 
 func replaceOmitEmpty(str string, split string, join string) string {
