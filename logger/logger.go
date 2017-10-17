@@ -114,7 +114,7 @@ func (m *Message) SetMap(p map[string]interface{}) *Message {
 // SetParams for message
 func (m *Message) SetParams(p interface{}) *Message {
 	b, _ := json.Marshal(p)
-	m.args["raw"] = string(b)
+	m.args["params"] = string(b)
 	return m
 }
 
