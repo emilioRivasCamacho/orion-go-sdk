@@ -172,8 +172,8 @@ func (s *Service) logRequest(req *Request, logging bool) {
 		out, _ := json.Marshal(in)
 
 		params := map[string]interface{}{
-			"raw":  string(out),
-			"meta": req.Meta,
+			"params": string(out),
+			"meta":   req.Meta,
 		}
 
 		s.Logger.
