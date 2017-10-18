@@ -121,6 +121,12 @@
   version = "v0.1.1"
 
 [[projects]]
+  name = "github.com/pmezard/go-difflib"
+  packages = ["difflib"]
+  revision = "792786c7400a136282c1664665ae0a8db921c6c2"
+  version = "v1.0.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/rcrowley/go-metrics"
   packages = ["."]
@@ -131,6 +137,12 @@
   name = "github.com/satori/go.uuid"
   packages = ["."]
   revision = "5bf94b69c6b68ee1b541973bb8e1144db23a194b"
+
+[[projects]]
+  name = "github.com/stretchr/testify"
+  packages = ["assert"]
+  revision = "69483b4bd14f5845b5a1e55bca19e954e827f1d0"
+  version = "v1.1.4"
 
 [[projects]]
   name = "github.com/vmihailenco/msgpack"
@@ -153,6 +165,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b0911cfbc652a29ce5c0acc3ebbacaae62e6ce98e9ed36dd7f4b1cd3ba29caef"
+  inputs-digest = "d178c1c2603d3b0576e10da2729fffffba03af701e4bdb93dd30a392e1fbc85f"
   solver-name = "gps-cdcl"
   solver-version = 1

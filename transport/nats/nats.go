@@ -60,7 +60,7 @@ func (t *Transport) Listen(callback func()) {
 		close <- true
 	}()
 	<-close
-	os.Exit(0)
+	t.conn.Close()
 }
 
 // Publish to topic
@@ -99,7 +99,6 @@ func (t *Transport) Request(path string, payload []byte, timeOut int) ([]byte, e
 
 // Close connection
 func (t *Transport) Close() {
-	t.conn.Close()
 	go func() {
 		close <- true
 	}()
