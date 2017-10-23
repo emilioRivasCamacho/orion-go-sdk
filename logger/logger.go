@@ -20,7 +20,7 @@ var (
 	Host = ""
 	// Port for graylog
 	Port    = ""
-	verbose = flag.Bool("verbose", false, "Enable verbose (console) logging")
+	verbose *bool
 	log     *logging.Logger
 )
 
@@ -37,13 +37,14 @@ type Logger interface {
 }
 
 func init() {
-	flag.Parse()
 	setVariables()
 	initConsoleLogger()
 }
 
 // New graylog logger
 func New(serviceName string) *Graylog {
+	parseFlags()
+
 	port, err := strconv.Atoi(Port)
 	if err != nil {
 		log.Fatalf("Unable to parse graylog port %s", err)
@@ -165,6 +166,17 @@ func setVariables() {
 	}
 	if Port == "" {
 		Port = env.Get("ORION_LOGGER_PORT", "12201")
+	}
+}
+
+func parseFlags() {
+	f := flag.Lookup("verbose")
+	if f == nil {
+		verbose = flag.Bool("verbose", false, "Enable verbose (console) logging")
+		flag.Parse()
+	} else {
+		b, _ := strconv.ParseBool(f.Value.String())
+		verbose = &b
 	}
 }
 
