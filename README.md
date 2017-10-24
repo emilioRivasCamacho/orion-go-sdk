@@ -1,5 +1,6 @@
 [![Build Status][travis-image]][travis-url] 
 [![Test coverage][coveralls-image]][coveralls-url]
+[![GoDoc][godoc-image]][godoc-url]
 
 ## Installation
 
@@ -97,3 +98,5 @@ $ go test -v .
 [travis-url]: https://travis-ci.org/betit/orion-go-sdk/
 [coveralls-image]: https://coveralls.io/repos/betit/orion-go-sdk/badge.svg
 [coveralls-url]: https://coveralls.io/r/betit/orion-go-sdk
+[godoc-image]: https://godoc.org/github.com/betit/orion-go-sdk?status.svg
+[godoc-url]: https://godoc.org/github.com/betit/orion-go-sdk
