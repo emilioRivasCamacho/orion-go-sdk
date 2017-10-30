@@ -2,8 +2,10 @@ package orion
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"reflect"
 	"strings"
 
 	"github.com/betit/orion-go-sdk/codec/msgpack"
@@ -14,6 +16,9 @@ import (
 	"github.com/betit/orion-go-sdk/transport/nats"
 	uuid "github.com/satori/go.uuid"
 )
+
+// Factory func type - the one that creates the req obj
+type Factory = func() interface{}
 
 // Service for orion
 type Service struct {
@@ -81,71 +86,80 @@ func (s *Service) Decode(data []byte, to interface{}) error {
 }
 
 // HandleWithoutLogging enabled
-func (s *Service) HandleWithoutLogging(path string, handler func(*Request) *Response) {
+func (s *Service) HandleWithoutLogging(path string, handler interface{}, factory Factory) {
 	logging := false
-	s.handle(path, logging, handler)
+	s.handle(path, logging, handler, factory)
 }
 
 // Handle has enabled logging. What that means is when the request
 // arrives the service will log the request including the raw params. Once the
 // response is returned, the service will check for error and if there is such,
 // the error will be logged
-func (s *Service) Handle(path string, handler func(*Request) *Response) {
+func (s *Service) Handle(path string, handler interface{}, factory Factory) {
 	logging := true
-	s.handle(path, logging, handler)
+	s.handle(path, logging, handler, factory)
 }
 
-func (s *Service) handle(path string, logging bool, handler func(*Request) *Response) {
+func (s *Service) handle(path string, logging bool, handler interface{}, factory Factory) {
 	route := fmt.Sprintf("%s.%s", s.Name, path)
+
+	method := reflect.ValueOf(handler)
+	s.checkHandler(method)
+
+	reqT := method.Type().In(0)
+	if reqT.Kind() == reflect.Ptr {
+		reqT = reqT.Elem()
+	}
+
 	s.Transport.Handle(route, s.Name, func(data []byte) []byte {
-		var req Request
-		err := s.Codec.Decode(data, &req)
+		req := factory()
+		err := s.Codec.Decode(data, req)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		s.logRequest(&req, logging)
+		s.logRequest(req, logging)
 
-		res := handler(&req)
+		res := method.Call([]reflect.Value{reflect.ValueOf(req)})[0].Interface()
 
-		s.logResponse(&req, res, logging)
+		s.logResponse(req, res, logging)
 
-		dat, err := s.Codec.Encode(res)
+		b, err := s.Codec.Encode(res)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		return dat
+		return b
 	})
 }
 
 // Call orion service
-func (s *Service) Call(request *Request) *Response {
-	closeTracer := s.Tracer.Trace(request)
-	response := Response{}
+func (s *Service) Call(req interfaces.Request, raw interface{}) {
+	res, ok := raw.(interfaces.Response)
+	checkResponseCast(ok)
 
-	encoded, err := s.Codec.Encode(request)
+	closeTracer := s.Tracer.Trace(req)
+
+	encoded, err := s.Codec.Encode(req)
 	if err != nil {
-		response.Error = oerror.New("ORION_ENCODE")
-		response.Error.SetMessage(err.Error())
-		return &response
+		res.SetError(oerror.New("ORION_ENCODE").SetMessage(err.Error()))
+		return
 	}
 
-	path := replaceOmitEmpty(request.Path, "/", ".")
-	res, err := s.Transport.Request(path, encoded, s.getTimeout(request))
+	path := replaceOmitEmpty(req.GetPath(), "/", ".")
+	b, err := s.Transport.Request(path, encoded, s.getTimeout(req))
 	if err != nil {
-		response.Error = oerror.New("ORION_TRANSPORT")
-		response.Error.SetMessage(err.Error())
-		return &response
+		res.SetError(oerror.New("ORION_TRANSPORT").SetMessage(err.Error()))
+		return
 	}
-	err = s.Codec.Decode(res, &response)
+
+	err = s.Codec.Decode(b, res)
 	if err != nil {
-		response.Error = oerror.New("ORION_DECODE")
-		response.Error.SetMessage(err.Error())
-		return &response
+		res.SetError(oerror.New("ORION_DECODE").SetMessage(err.Error()))
+		return
 	}
+
 	closeTracer()
-	return &response
 }
 
 // Listen to the transport protocol
@@ -163,21 +177,32 @@ func (s *Service) String() string {
 	return fmt.Sprintf("%s-%s", s.Name, s.ID)
 }
 
-func (s *Service) logRequest(req *Request, logging bool) {
+func (s *Service) logRequest(raw interface{}, logging bool) {
 	if logging {
+
+		req, ok := raw.(interfaces.Request)
+		checkRequestCast(ok)
+
+		v := reflect.ValueOf(raw).Elem().FieldByName("Params").Interface()
+
+		var out interface{}
 		var in interface{}
 
-		s.Decode(req.Params, &in)
-
-		out, _ := json.Marshal(in)
+		if _, ok = v.([]byte); ok {
+			s.Decode(req.GetParams(), &in)
+			t, _ := json.Marshal(in)
+			out = string(t)
+		} else {
+			out = v
+		}
 
 		params := map[string]interface{}{
-			"params": string(out),
-			"meta":   req.Meta,
+			"params": out,
+			"meta":   req.GetMeta(),
 		}
 
 		s.Logger.
-			CreateMessage(req.Path).
+			CreateMessage(req.GetPath()).
 			SetLevel(logger.INFO).
 			SetID(req.GetID()).
 			SetMap(params).
@@ -185,22 +210,43 @@ func (s *Service) logRequest(req *Request, logging bool) {
 	}
 }
 
-func (s *Service) logResponse(req *Request, res *Response, logging bool) {
-	if res.Error != nil && logging {
-		s.Logger.
-			CreateMessage(req.Path).
-			SetLevel(logger.ERROR).
-			SetID(req.GetID()).
-			SetParams(res.Error).
-			Send()
+func (s Service) logResponse(rawReq, rawRes interface{}, logging bool) {
+	if logging {
+
+		req, ok := rawReq.(interfaces.Request)
+		checkResponseCast(ok)
+
+		res, ok := rawRes.(interfaces.Response)
+		checkResponseCast(ok)
+
+		err := res.GetError()
+		if err != nil {
+			s.Logger.
+				CreateMessage(req.GetPath()).
+				SetLevel(logger.ERROR).
+				SetID(req.GetID()).
+				SetParams(err).
+				Send()
+		}
 	}
 }
 
-func (s *Service) getTimeout(request *Request) int {
-	if request.Timeout != nil {
-		return *request.Timeout
+func (s Service) getTimeout(req interfaces.Request) int {
+	t := req.GetTimeout()
+	if t != nil {
+		return *t
 	}
 	return s.Timeout
+}
+
+func (s Service) checkHandler(method reflect.Value) {
+	if method.Type().NumIn() != 1 {
+		log.Fatal(errors.New("handler methods must have one argument"))
+	}
+
+	if method.Type().NumOut() != 1 {
+		log.Fatal(errors.New("handler methods must have one return value"))
+	}
 }
 
 func replaceOmitEmpty(str string, split string, join string) string {
@@ -211,4 +257,16 @@ func replaceOmitEmpty(str string, split string, join string) string {
 		}
 	}
 	return strings.Join(r, join)
+}
+
+func checkRequestCast(ok bool) {
+	if !ok {
+		log.Fatal("Request does not implement interfaces.Request")
+	}
+}
+
+func checkResponseCast(ok bool) {
+	if !ok {
+		log.Fatal("Response does not implement interfaces.Response")
+	}
 }

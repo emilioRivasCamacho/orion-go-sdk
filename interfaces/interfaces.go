@@ -1,8 +1,8 @@
 package interfaces
 
 import (
+	oerror "github.com/betit/orion-go-sdk/error"
 	"github.com/betit/orion-go-sdk/logger"
-	"github.com/betit/orion-go-sdk/request"
 )
 
 // Codec interface
@@ -21,9 +21,34 @@ type Transport interface {
 	Close()
 }
 
+// Response interface
+type Response interface {
+	GetError() *oerror.Error
+	SetError(*oerror.Error) Response
+	ParsePayload(interface{}) error
+	SetPayload(interface{}) error
+}
+
+// Request interface
+type Request interface {
+	GetPath() string
+	SetPath(string) Request
+	GetID() string
+	SetID(string) Request
+	GetTracerData() map[string][]string
+	SetTracerData(map[string][]string) Request
+	GetTimeout() *int
+	SetTimeout(int) Request
+	GetMeta() map[string]string
+	SetMeta(map[string]string) Request
+	GetParams() []byte
+	ParseParams(interface{}) error
+	SetParams(interface{}) error
+}
+
 // Tracer interface
 type Tracer interface {
-	Trace(*request.Request) func()
+	Trace(Request) func()
 }
 
 // Logger interface

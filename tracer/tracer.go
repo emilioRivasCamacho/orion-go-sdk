@@ -9,7 +9,7 @@ import (
 	zipkin "github.com/openzipkin/zipkin-go-opentracing"
 
 	"github.com/betit/orion-go-sdk/env"
-	"github.com/betit/orion-go-sdk/request"
+	"github.com/betit/orion-go-sdk/interfaces"
 )
 
 var (
@@ -75,20 +75,17 @@ func New(service string) Tracer {
 }
 
 // Trace request
-func (t Tracer) Trace(req *request.Request) Close {
-	ctx, _ := tracer.Extract(opentracing.TextMap, opentracing.HTTPHeadersCarrier(req.TracerData))
-	span := tracer.StartSpan(req.Path, opentracing.ChildOf(ctx))
+func (t Tracer) Trace(req interfaces.Request) Close {
+	ctx, _ := tracer.Extract(opentracing.TextMap, opentracing.HTTPHeadersCarrier(req.GetTracerData()))
+	span := tracer.StartSpan(req.GetPath(), opentracing.ChildOf(ctx))
 	ext.SpanKindRPCClient.Set(span)
 
 	headers := opentracing.HTTPHeadersCarrier(map[string][]string{})
 
 	tracer.Inject(span.Context(), opentracing.TextMap, headers)
 
-	req.TracerData = headers
-	if req.Meta == nil {
-		req.Meta = map[string]string{}
-	}
-	req.Meta["x-trace-id"] = headers["X-B3-Traceid"][0]
+	req.SetTracerData(headers)
+	req.SetID(headers["X-B3-Traceid"][0])
 
 	return func() {
 		span.Finish()

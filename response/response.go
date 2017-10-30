@@ -3,6 +3,7 @@ package response
 import (
 	"github.com/betit/orion-go-sdk/codec/msgpack"
 	oerror "github.com/betit/orion-go-sdk/error"
+	"github.com/betit/orion-go-sdk/interfaces"
 )
 
 // Response from the service
@@ -23,4 +24,15 @@ func (r *Response) SetPayload(payload interface{}) error {
 	b, err := codec.Encode(payload)
 	r.Payload = b
 	return err
+}
+
+// GetError for res
+func (r Response) GetError() *oerror.Error {
+	return r.Error
+}
+
+// SetError for response
+func (r *Response) SetError(e *oerror.Error) interfaces.Response {
+	r.Error = e
+	return r
 }

@@ -20,27 +20,34 @@ func TestHandle(t *testing.T) {
 
 	calc := New("calc")
 
-	calc.Handle("sum", func(req *Request) *Response {
+	factory := func() interface{} {
+		return &Request{}
+	}
+
+	handle := func(req *Request) *Response {
 		res := &Response{}
 
 		p := &params{}
-		req.GetParams(p)
+		req.ParseParams(p)
 
 		res.SetPayload(p.A + p.B)
 		return res
-	})
+	}
+
+	calc.Handle("sum", handle, factory)
 
 	go calc.Listen(func() {
 		var result int
 
 		req := &Request{}
-		req.Path = "/calc/sum"
-		req.SetParams(params{
+		req.SetPath("/calc/sum").SetParams(params{
 			A: 1,
 			B: 2,
 		})
 
-		res := svc.Call(req)
+		res := &Response{}
+		svc.Call(req, res)
+
 		res.ParsePayload(&result)
 
 		calc.Close()
@@ -57,31 +64,37 @@ func TestTimeout(t *testing.T) {
 
 	s := New("timeout")
 
-	s.Handle("test", func(req *Request) *Response {
+	handler := func(req *Request) *Response {
 		time.Sleep(201 * time.Millisecond)
 		return &Response{}
-	})
+	}
+
+	factory := func() interface{} {
+		return &Request{}
+	}
+
+	s.Handle("test", handler, factory)
 
 	go s.Listen(func() {
 		req := &Request{}
 		req.Path = "/timeout/test"
 
-		res := svc.Call(req)
-		if res.Error == nil {
+		res1 := &Response{}
+		svc.Call(req, res1)
+		if res1.GetError() == nil {
 			// the call must timeout, the default timeout is 200ms
 			done <- true
 			return
 		}
 
 		req = &Request{}
-		req.Path = "/timeout/test"
-		timeout := 300
-		req.Timeout = &timeout
+		req.SetPath("/timeout/test").SetTimeout(300)
 
-		res = svc.Call(req)
+		res2 := &Response{}
+		svc.Call(req, res2)
 		s.Close()
 
-		done <- res.Error != nil
+		done <- res2.GetError() != nil
 	})
 
 	hasError := <-done
@@ -103,6 +116,66 @@ func TestPubSub(t *testing.T) {
 
 	success := <-done
 	assert.Equal(t, true, success)
+}
+
+func TestCustomReqRes(t *testing.T) {
+	type params struct {
+		C int
+		D int
+	}
+
+	type customReq struct {
+		Request
+		Params params
+	}
+
+	type customPayload struct {
+		Result int
+	}
+
+	type customRes struct {
+		Response
+		Payload customPayload
+	}
+
+	expected := 3
+	done := make(chan int)
+
+	calc := New("calc")
+
+	factory := func() interface{} {
+		return &customReq{}
+	}
+
+	handle := func(req *customReq) *customRes {
+		return &customRes{
+			Payload: customPayload{
+				Result: req.Params.C + req.Params.D,
+			},
+		}
+	}
+
+	calc.Handle("sum", handle, factory)
+
+	go calc.Listen(func() {
+		res := &customRes{}
+		req := &customReq{
+			Params: params{
+				C: 1,
+				D: 2,
+			},
+		}
+		req.SetPath("/calc/sum")
+
+		svc.Call(req, res)
+
+		calc.Close()
+
+		done <- res.Payload.Result
+	})
+
+	result := <-done
+	assert.Equal(t, expected, result)
 }
 
 func TestMain(m *testing.M) {
