@@ -5,13 +5,22 @@ import (
 	"github.com/betit/orion-go-sdk/interfaces"
 )
 
+// Meta type for req
+type Meta map[string]string
+
+// TracerData type for req
+type TracerData map[string][]string
+
 // Request object
+// swagger:ignore
 type Request struct {
-	TracerData map[string][]string `json:"tracerData" msgpack:"tracerData"`
-	Path       string              `json:"path" msgpack:"path"`
-	Params     []byte              `json:"params" msgpack:"params"`
-	Meta       map[string]string   `json:"meta" msgpack:"meta"`
-	Timeout    *int                `json:"timeout" msgpack:"timeout"`
+	// Empty json tags because we need to omit those fields when generating the docs
+	// and we do not plan to support json
+	TracerData TracerData `json:"-" msgpack:"tracerData"`
+	Path       string     `json:"-" msgpack:"path"`
+	Params     []byte     `json:"-" msgpack:"params"`
+	Meta       Meta       `json:"-" msgpack:"meta"`
+	Timeout    *int       `json:"-" msgpack:"timeout"`
 }
 
 var codec = msgpack.New()

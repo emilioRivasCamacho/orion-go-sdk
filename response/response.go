@@ -8,8 +8,10 @@ import (
 
 // Response from the service
 type Response struct {
-	Payload []byte        `json:"payload" msgpack:"payload"`
-	Error   *oerror.Error `json:"error" msgpack:"error"`
+	// Empty json tags because we need to omit those fields when generating the docs
+	// and we do not plan to support json
+	Payload []byte        `json:"-" msgpack:"payload"`
+	Error   *oerror.Error `json:"-" msgpack:"error"`
 }
 
 var codec = msgpack.New()
