@@ -22,3 +22,8 @@ func (e *Error) SetMessage(msg string) *Error {
 	e.Message = msg
 	return e
 }
+
+// Error returns the error message
+func (e Error) Error() string {
+	return e.Message
+}
