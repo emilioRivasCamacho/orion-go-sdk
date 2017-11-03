@@ -9,26 +9,23 @@ import (
 
 	"github.com/betit/orion-go-sdk/transport"
 
-	n "github.com/nats-io/nats"
-)
-
-var (
-	close = make(chan bool)
+	"github.com/nats-io/go-nats"
 )
 
 // Transport object
 type Transport struct {
 	options *transport.Options
-	conn    *n.Conn
+	conn    *nats.Conn
+	close   chan struct{}
 }
 
-// New nats transport
+// New returns client for NATS messaging
 func New(options ...transport.Option) *Transport {
 	t := new(Transport)
 
 	natsURL := os.Getenv("NATS")
 	if natsURL == "" {
-		natsURL = n.DefaultURL
+		natsURL = nats.DefaultURL
 	}
 
 	t.options = &transport.Options{
@@ -40,11 +37,12 @@ func New(options ...transport.Option) *Transport {
 	}
 
 	var err error
-	t.conn, err = n.Connect(t.options.URL)
+	t.conn, err = nats.Connect(t.options.URL)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	t.close = make(chan struct{})
 	return t
 }
 
@@ -57,9 +55,9 @@ func (t *Transport) Listen(callback func()) {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigs
-		close <- true
+		t.close <- struct{}{}
 	}()
-	<-close
+	<-t.close
 	t.conn.Close()
 }
 
@@ -70,7 +68,7 @@ func (t *Transport) Publish(topic string, data []byte) error {
 
 // Subscribe for topic
 func (t *Transport) Subscribe(topic string, group string, handler func([]byte)) error {
-	_, err := t.conn.QueueSubscribe(topic, group, func(msg *n.Msg) {
+	_, err := t.conn.QueueSubscribe(topic, group, func(msg *nats.Msg) {
 		handler(msg.Data)
 	})
 	return err
@@ -78,7 +76,7 @@ func (t *Transport) Subscribe(topic string, group string, handler func([]byte)) 
 
 // Handle path
 func (t *Transport) Handle(path string, group string, handler func([]byte) []byte) error {
-	_, err := t.conn.QueueSubscribe(path, group, func(msg *n.Msg) {
+	_, err := t.conn.QueueSubscribe(path, group, func(msg *nats.Msg) {
 		res := handler(msg.Data)
 		t.conn.Publish(msg.Reply, res)
 	})
@@ -100,6 +98,6 @@ func (t *Transport) Request(path string, payload []byte, timeOut int) ([]byte, e
 // Close connection
 func (t *Transport) Close() {
 	go func() {
-		close <- true
+		t.close <- struct{}{}
 	}()
 }
