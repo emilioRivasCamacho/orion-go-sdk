@@ -18,7 +18,7 @@ import (
 )
 
 // Factory func type - the one that creates the req obj
-type Factory = func() interface{}
+type Factory = func() interfaces.Request
 
 // Service for orion
 type Service struct {
