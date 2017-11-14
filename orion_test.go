@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/betit/orion-go-sdk/interfaces"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,7 +21,7 @@ func TestHandle(t *testing.T) {
 
 	calc := New("calc")
 
-	factory := func() interface{} {
+	factory := func() interfaces.Request {
 		return &Request{}
 	}
 
@@ -69,7 +70,7 @@ func TestTimeout(t *testing.T) {
 		return &Response{}
 	}
 
-	factory := func() interface{} {
+	factory := func() interfaces.Request {
 		return &Request{}
 	}
 
@@ -143,7 +144,7 @@ func TestCustomReqRes(t *testing.T) {
 
 	calc := New("calc")
 
-	factory := func() interface{} {
+	factory := func() interfaces.Request {
 		return &customReq{}
 	}
 
