@@ -25,6 +25,14 @@ type Request struct {
 
 var codec = msgpack.New()
 
+// New request
+func New() *Request {
+	return &Request{
+		Meta:       map[string]string{},
+		TracerData: map[string][]string{},
+	}
+}
+
 // Merge the meta and tracer data
 // Needed for cross service communication
 func Merge(from, to interfaces.Request) {
