@@ -180,7 +180,7 @@ func TestCustomReqRes(t *testing.T) {
 	assert.Equal(t, expected, result)
 }
 
-func testSetGetMetaProp(t *testing.T) {
+func TestSetGetMetaProp(t *testing.T) {
 	expected := "bar"
 	req := request.Request{}
 
