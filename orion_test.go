@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/betit/orion-go-sdk/interfaces"
+	"github.com/betit/orion-go-sdk/request"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -177,6 +178,15 @@ func TestCustomReqRes(t *testing.T) {
 
 	result := <-done
 	assert.Equal(t, expected, result)
+}
+
+func testSetGetMetaProp(t *testing.T) {
+	expected := "bar"
+	req := request.Request{}
+
+	req.SetMetaProp("foo", expected)
+
+	assert.Equal(t, expected, req.GetMetaProp("foo"))
 }
 
 func TestMain(m *testing.M) {
