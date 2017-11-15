@@ -68,6 +68,17 @@ func (r *Request) SetMeta(m map[string]string) interfaces.Request {
 	return r
 }
 
+// GetMetaProp for req
+func (r Request) GetMetaProp(key string) string {
+	return r.Meta[key]
+}
+
+// SetMetaProp for req
+func (r *Request) SetMetaProp(key, value string) interfaces.Request {
+	r.Meta[key] = value
+	return r
+}
+
 // GetTimeout for req
 func (r Request) GetTimeout() *int {
 	return r.Timeout
