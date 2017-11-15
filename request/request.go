@@ -34,16 +34,12 @@ func Merge(from, to interfaces.Request) {
 
 // GetID for req - used for tracing and logging
 func (r Request) GetID() string {
-	return r.Meta["x-trace-id"]
+	return r.GetMetaProp("x-trace-id")
 }
 
 // SetID for req - used for tracing and logging
 func (r *Request) SetID(id string) interfaces.Request {
-	if r.Meta == nil {
-		r.Meta = map[string]string{}
-	}
-	r.Meta["x-trace-id"] = id
-	return r
+	return r.SetMetaProp("x-trace-id", id)
 }
 
 // GetTracerData for req
@@ -75,6 +71,9 @@ func (r Request) GetMetaProp(key string) string {
 
 // SetMetaProp for req
 func (r *Request) SetMetaProp(key, value string) interfaces.Request {
+	if r.Meta == nil {
+		r.Meta = map[string]string{}
+	}
 	r.Meta[key] = value
 	return r
 }
