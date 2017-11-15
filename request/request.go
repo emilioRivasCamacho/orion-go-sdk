@@ -25,6 +25,14 @@ type Request struct {
 
 var codec = msgpack.New()
 
+// New request
+func New() *Request {
+	return &Request{
+		Meta:       map[string]string{},
+		TracerData: map[string][]string{},
+	}
+}
+
 // Merge the meta and tracer data
 // Needed for cross service communication
 func Merge(from, to interfaces.Request) {
@@ -34,16 +42,12 @@ func Merge(from, to interfaces.Request) {
 
 // GetID for req - used for tracing and logging
 func (r Request) GetID() string {
-	return r.Meta["x-trace-id"]
+	return r.GetMetaProp("x-trace-id")
 }
 
 // SetID for req - used for tracing and logging
 func (r *Request) SetID(id string) interfaces.Request {
-	if r.Meta == nil {
-		r.Meta = map[string]string{}
-	}
-	r.Meta["x-trace-id"] = id
-	return r
+	return r.SetMetaProp("x-trace-id", id)
 }
 
 // GetTracerData for req
@@ -65,6 +69,20 @@ func (r Request) GetMeta() map[string]string {
 // SetMeta for req
 func (r *Request) SetMeta(m map[string]string) interfaces.Request {
 	r.Meta = m
+	return r
+}
+
+// GetMetaProp for req
+func (r Request) GetMetaProp(key string) string {
+	return r.Meta[key]
+}
+
+// SetMetaProp for req
+func (r *Request) SetMetaProp(key, value string) interfaces.Request {
+	if r.Meta == nil {
+		r.Meta = map[string]string{}
+	}
+	r.Meta[key] = value
 	return r
 }
 

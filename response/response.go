@@ -16,6 +16,11 @@ type Response struct {
 
 var codec = msgpack.New()
 
+// New reponse
+func New() *Response {
+	return &Response{}
+}
+
 // ParsePayload as type
 func (r *Response) ParsePayload(to interface{}) error {
 	return codec.Decode(r.Payload, to)

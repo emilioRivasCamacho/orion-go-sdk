@@ -18,5 +18,7 @@ before_install:
   - docker run -p 4222:4222 -d nats
 
 script:
+  - go test -v ./request
+  - go test -v ./response
   - go test -v -covermode=count -coverprofile=coverage.out
   - $GOPATH/bin/goveralls -coverprofile=coverage.out -service=travis-ci

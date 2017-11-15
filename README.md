@@ -24,23 +24,47 @@ Add the following into `foo.go` and run `go run foo.go --verbose`
 package main
 
 import (
-	"log"
-
 	orion "github.com/betit/orion-go-sdk"
+	"github.com/betit/orion-go-sdk/interfaces"
+	"github.com/betit/orion-go-sdk/request"
+	"github.com/betit/orion-go-sdk/response"
 )
 
+type params struct {
+	A int `msgpack:"a"`
+	B int `msgpack:"b"`
+}
+
+type addReq struct {
+	request.Request
+	Params params `msgpack:"params"`
+}
+
+type addPayload struct {
+	Result int `msgpack:"result"`
+}
+
+type addRes struct {
+	response.Response
+	Payload addPayload `msgpack:"payload"`
+}
+
 func main() {
-	svc := orion.New("foo")
+	svc := orion.New("calc")
 
-	svc.Handle("get", func(req *orion.Request) *orion.Response {
-		res := &orion.Response{}
-		err := res.SetPayload("bar")
-		if err != nil {
-			log.Fatal(err)
+	factory := func() interfaces.Request {
+		return &addReq{}
+	}
+
+	handle := func(req *addReq) *addRes {
+		return &addRes{
+			Payload: addPayload{
+				Result: req.Params.A + req.Params.B,
+			},
 		}
+	}
 
-		return res
-	})
+	svc.Handle("add", handle, factory)
 
 	svc.Listen(func() {
 		svc.Logger.CreateMessage("ready").Send()
@@ -54,35 +78,50 @@ Then add the following into `bar.go` and run `go run bar.go`
 package main
 
 import (
-	"log"
-
 	orion "github.com/betit/orion-go-sdk"
+	"github.com/betit/orion-go-sdk/request"
+	"github.com/betit/orion-go-sdk/response"
 )
 
+type params struct {
+	A int `msgpack:"a"`
+	B int `msgpack:"b"`
+}
+
+type addReq struct {
+	request.Request
+	Params params `msgpack:"params"`
+}
+
+type addPayload struct {
+	Result int `msgpack:"result"`
+}
+
+type addRes struct {
+	response.Response
+	Payload addPayload `msgpack:"payload"`
+}
+
 func main() {
-  svc := orion.New("bar")
+	svc := orion.New("calc")
 
-	req := &orion.Request{
-		Path: "/foo/get",
+	req := &addReq{
+		Params: params{
+			A: 1,
+			B: 2,
+		},
 	}
+	req.Path = "/calc/add"
 
-	res := svc.Call(req)
-	if res.Error != nil {
-		log.Fatal(res.Error.Message)
-	}
+	res := &addRes{}
 
-	payload := ""
+	svc.Call(req, res)
 
-	err := res.ParsePayload(&payload)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-
-	log.Print(payload)
+	println(res.Payload.Result) // 3
 }
 ```
 
-You can find more detailed examples in the `examples` folder.
+You can find more examples in the test files.
 
 ## Tests
 

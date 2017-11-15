@@ -41,6 +41,8 @@ type Request interface {
 	SetTimeout(int) Request
 	GetMeta() map[string]string
 	SetMeta(map[string]string) Request
+	GetMetaProp(key string) string
+	SetMetaProp(key, value string) Request
 	GetParams() []byte
 	ParseParams(interface{}) error
 	SetParams(interface{}) error
