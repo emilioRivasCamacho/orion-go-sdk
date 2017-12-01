@@ -21,6 +21,7 @@ type Request struct {
 	Params     []byte     `json:"-" msgpack:"params"`
 	Meta       Meta       `json:"-" msgpack:"meta"`
 	Timeout    *int       `json:"-" msgpack:"timeout"`
+	Error      error      `json:"-" msgpack:",omitempty"`
 }
 
 var codec = msgpack.New()
@@ -123,4 +124,10 @@ func (r *Request) SetParams(params interface{}) error {
 // ParseParams as type
 func (r Request) ParseParams(to interface{}) error {
 	return codec.Decode(r.Params, to)
+}
+
+// SetError that is returned when decoding the bytes
+func (r *Request) SetError(err error) interfaces.Request {
+	r.Error = err
+	return r
 }

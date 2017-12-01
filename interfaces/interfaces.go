@@ -46,6 +46,7 @@ type Request interface {
 	GetParams() []byte
 	ParseParams(interface{}) error
 	SetParams(interface{}) error
+	SetError(error) Request
 }
 
 // Tracer interface

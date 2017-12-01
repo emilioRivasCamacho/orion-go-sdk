@@ -113,10 +113,7 @@ func (s *Service) handle(path string, logging bool, handler interface{}, factory
 
 	s.Transport.Handle(route, s.Name, func(data []byte) []byte {
 		req := factory()
-		err := s.Codec.Decode(data, req)
-		if err != nil {
-			log.Fatal(err)
-		}
+		req.SetError(s.Codec.Decode(data, req))
 
 		s.logRequest(req, logging)
 
