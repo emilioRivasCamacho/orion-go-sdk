@@ -126,7 +126,7 @@ func (r Request) ParseParams(to interface{}) error {
 	return codec.Decode(r.Params, to)
 }
 
-// SetError that is returned when decoding the bytes
+// SetError that is returned when decoding the bytes (raw req)
 func (r *Request) SetError(err error) interfaces.Request {
 	r.Error = err
 	return r
