@@ -169,6 +169,13 @@ func (s *Service) Close() {
 	s.Transport.Close()
 }
 
+// OnClose adds a handler to a transport connection closed event
+func (s *Service) OnClose(handler func()) {
+	s.Transport.OnClose(func(*nats.Conn) {
+		handler()
+	})
+}
+
 // String return the name and the id of the service
 func (s *Service) String() string {
 	return fmt.Sprintf("%s-%s", s.Name, s.ID)

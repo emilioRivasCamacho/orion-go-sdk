@@ -12,10 +12,13 @@ import (
 	"github.com/nats-io/go-nats"
 )
 
+// Conn is a NATS connection
+type Conn = nats.Conn
+
 // Transport object
 type Transport struct {
 	options *transport.Options
-	conn    *nats.Conn
+	conn    *Conn
 	close   chan struct{}
 }
 
@@ -37,7 +40,15 @@ func New(options ...transport.Option) *Transport {
 	}
 
 	var err error
-	t.conn, err = nats.Connect(t.options.URL)
+	natsOpts := nats.Options{
+		Url:            t.options.URL,
+		AllowReconnect: true,
+		MaxReconnect:   10,
+		ReconnectWait:  1 * time.Second,
+		Timeout:        2 * time.Second,
+		PingInterval:   1 * time.Second,
+	}
+	t.conn, err = natsOpts.Connect()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -100,4 +111,11 @@ func (t *Transport) Close() {
 	go func() {
 		t.close <- struct{}{}
 	}()
+}
+
+// OnClose adds a handler to NATS close event
+func (t *Transport) OnClose(handler interface{}) {
+	if callback, ok := handler.(func(*nats.Conn)); ok {
+		t.conn.SetClosedHandler(callback)
+	}
 }

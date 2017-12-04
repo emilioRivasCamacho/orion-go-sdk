@@ -119,6 +119,23 @@ func TestPubSub(t *testing.T) {
 	assert.Equal(t, true, success)
 }
 
+func TestOnClose(t *testing.T) {
+	done := make(chan bool)
+
+	onclose := New("onclose")
+
+	onclose.OnClose(func() {
+		done <- true
+	})
+
+	go onclose.Listen(func() {
+		onclose.Close()
+	})
+
+	success := <-done
+	assert.Equal(t, true, success)
+}
+
 func TestCustomReqRes(t *testing.T) {
 	type params struct {
 		C int
