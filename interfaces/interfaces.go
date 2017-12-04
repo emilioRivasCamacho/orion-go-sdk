@@ -19,7 +19,7 @@ type Transport interface {
 	Handle(string, string, func([]byte) []byte) error
 	Request(string, []byte, int) ([]byte, error)
 	Close()
-	OnClose(func(interface{}))
+	OnClose(interface{})
 }
 
 // Response interface
