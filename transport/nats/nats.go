@@ -115,7 +115,7 @@ func (t *Transport) Close() {
 
 // OnClose adds a handler to NATS close event
 func (t *Transport) OnClose(handler interface{}) {
-	if callback, ok := handler.(nats.ConnHandler); ok {
+	if callback, ok := handler.(func(*nats.Conn)); ok {
 		t.conn.SetClosedHandler(callback)
 	}
 }
