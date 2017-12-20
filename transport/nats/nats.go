@@ -17,9 +17,10 @@ type Conn = nats.Conn
 
 // Transport object
 type Transport struct {
-	options *transport.Options
-	conn    *Conn
-	close   chan struct{}
+	options      *transport.Options
+	conn         *Conn
+	close        chan struct{}
+	closeHandler func(*nats.Conn)
 }
 
 // New returns client for NATS messaging
@@ -74,7 +75,9 @@ func (t *Transport) Listen(callback func()) {
 
 // Publish to topic
 func (t *Transport) Publish(topic string, data []byte) error {
-	return t.conn.Publish(topic, data)
+	err := t.conn.Publish(topic, data)
+	t.handleUnexpectedClose(err)
+	return err
 }
 
 // Subscribe for topic
@@ -82,6 +85,7 @@ func (t *Transport) Subscribe(topic string, group string, handler func([]byte)) 
 	_, err := t.conn.QueueSubscribe(topic, group, func(msg *nats.Msg) {
 		handler(msg.Data)
 	})
+	t.handleUnexpectedClose(err)
 	return err
 }
 
@@ -91,6 +95,7 @@ func (t *Transport) Handle(path string, group string, handler func([]byte) []byt
 		res := handler(msg.Data)
 		t.conn.Publish(msg.Reply, res)
 	})
+	t.handleUnexpectedClose(err)
 	return err
 }
 
@@ -98,11 +103,11 @@ func (t *Transport) Handle(path string, group string, handler func([]byte) []byt
 func (t *Transport) Request(path string, payload []byte, timeOut int) ([]byte, error) {
 
 	msg, err := t.conn.Request(path, payload, time.Duration(timeOut)*time.Millisecond)
+	t.handleUnexpectedClose(err)
 	var data []byte
 	if msg != nil {
 		data = msg.Data
 	}
-
 	return data, err
 }
 
@@ -116,6 +121,13 @@ func (t *Transport) Close() {
 // OnClose adds a handler to NATS close event
 func (t *Transport) OnClose(handler interface{}) {
 	if callback, ok := handler.(func(*nats.Conn)); ok {
+		t.closeHandler = callback
 		t.conn.SetClosedHandler(callback)
+	}
+}
+
+func (t *Transport) handleUnexpectedClose(err error) {
+	if err == nats.ErrConnectionClosed {
+		t.closeHandler(t.conn)
 	}
 }
