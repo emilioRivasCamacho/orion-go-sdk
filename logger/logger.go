@@ -9,6 +9,7 @@ import (
 
 	"github.com/op/go-logging"
 
+	oerror "../error"
 	"github.com/betit/orion-go-sdk/env"
 	"github.com/duythinht/gelf/client"
 )
@@ -158,6 +159,11 @@ func (m *Message) log(data string) {
 		log.Info("Debug %s", data)
 	}
 
+}
+func (message *Message) SetLineOfCode(code oerror.LineOfCode) *Message {
+	message.args["LOC"] = code.File + ":" + strconv.Itoa(code.Line)
+
+	return message
 }
 
 func setVariables() {

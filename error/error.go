@@ -1,19 +1,34 @@
 package error
 
-import "github.com/satori/go.uuid"
+import (
+	"runtime"
+
+	"github.com/satori/go.uuid"
+)
+
+type LineOfCode struct {
+	File string
+	Line int
+}
 
 // Error object
 type Error struct {
 	ID      string `json:"id" msgpack:"id"`
 	Code    string `json:"code" msgpack:"code"`
 	Message string `json:"message" msgpack:"message"`
+	LOC     LineOfCode
 }
 
 // New error object
 func New(code string) *Error {
+	_, file, line, _ := runtime.Caller(1)
 	return &Error{
 		ID:   uuid.NewV4().String(),
 		Code: code,
+		LOC: LineOfCode{
+			file,
+			line,
+		},
 	}
 }
 

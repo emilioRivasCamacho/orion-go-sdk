@@ -229,6 +229,7 @@ func (s Service) logResponse(rawReq, rawRes interface{}, logging bool) {
 				CreateMessage(req.GetPath()).
 				SetLevel(logger.ERROR).
 				SetID(req.GetID()).
+				SetLineOfCode(err.LOC).
 				SetParams(err).
 				Send()
 		}
