@@ -13,10 +13,10 @@ type LineOfCode struct {
 
 // Error object
 type Error struct {
-	ID      string `json:"id" msgpack:"id"`
-	Code    string `json:"code" msgpack:"code"`
-	Message string `json:"message" msgpack:"message"`
-	LOC     LineOfCode
+	ID      string     `json:"id" msgpack:"id"`
+	Code    string     `json:"code" msgpack:"code"`
+	Message string     `json:"message" msgpack:"message"`
+	LOC     LineOfCode `msgpack:"-"`
 }
 
 // New error object
