@@ -7,11 +7,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/op/go-logging"
-
-	oerror "../error"
 	"github.com/betit/orion-go-sdk/env"
+	oerror "github.com/betit/orion-go-sdk/error"
 	"github.com/duythinht/gelf/client"
+	logging "github.com/op/go-logging"
 )
 
 var (
