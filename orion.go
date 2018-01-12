@@ -54,8 +54,10 @@ func New(name string, options ...Option) *Service {
 		opts.Logger = logger.New(name)
 	}
 
+	uid, _ := uuid.NewV4()
+
 	return &Service{
-		ID:        uuid.NewV4().String(),
+		ID:        uid.String(),
 		Name:      name,
 		Timeout:   200,
 		Codec:     opts.Codec,
