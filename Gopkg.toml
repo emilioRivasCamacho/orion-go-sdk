@@ -26,7 +26,7 @@
   name = "github.com/nats-io/nats"
 
 [[constraint]]
-  name = "github.com/vmihailenco/msgpack"
+  name = "github.com/betit/msgpack"
   version = "3.1.0"
 
 [[constraint]]
