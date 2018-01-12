@@ -1,7 +1,7 @@
 package msgpack
 
 import (
-	msgp "github.com/vmihailenco/msgpack"
+	msgp "github.com/betit/msgpack"
 )
 
 // MSGPack object

@@ -4,17 +4,26 @@
 [[projects]]
   name = "github.com/Shopify/sarama"
   packages = ["."]
-  revision = "15174039fd207656a0f97f52bc78ec7793deeada"
+  revision = "3b1b38866a79f06deddf0487d5c27ba0697ccd65"
+  version = "v1.15.0"
 
 [[projects]]
   name = "github.com/apache/thrift"
   packages = ["lib/go/thrift"]
-  revision = "b66b66ff52f2837adffc4ff931eabab5ae2809f1"
+  revision = "327ebb6c2b6df8bf075da02ef45a2a034e9b79ba"
+  version = "0.11.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/betit/msgpack"
+  packages = [".","codes"]
+  revision = "2c1beed37aa801956e6c4ff7b1a0e7da59059872"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
-  revision = "a476722483882dd40b8111f0eb64e1d7f43f56e4"
+  revision = "346938d642f2ec3594ed81d874461961cd0faa76"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "master"
@@ -25,7 +34,8 @@
 [[projects]]
   name = "github.com/eapache/go-resiliency"
   packages = ["breaker"]
-  revision = "b1fe83b5b03f624450823b751b662259ffc6af70"
+  revision = "6800482f2c813e689c88b7ed3282262385011890"
+  version = "v1.0.0"
 
 [[projects]]
   branch = "master"
@@ -37,22 +47,25 @@
   name = "github.com/eapache/queue"
   packages = ["."]
   revision = "44cc805cf13205b55f69e14bcb69867d1ae92f98"
+  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/go-logfmt/logfmt"
   packages = ["."]
   revision = "390ab7935ee28ec6b286364bba9b4dd6410cb3d5"
+  version = "v0.3.0"
 
 [[projects]]
   name = "github.com/gogo/protobuf"
   packages = ["proto"]
-  revision = "2adc21fd136931e0388e278825291678e1d98309"
+  revision = "342cbe0a04158f6dcb03ca0079991a51a4248c02"
+  version = "v0.5"
 
 [[projects]]
   branch = "master"
   name = "github.com/golang/protobuf"
   packages = ["proto"]
-  revision = "5afd06f9d81a86d6e3bb7dc702d6bd148ea3ff23"
+  revision = "1e59b77b52bf8e4b449a57e6f79f21226d571845"
 
 [[projects]]
   branch = "master"
@@ -69,8 +82,8 @@
 [[projects]]
   name = "github.com/nats-io/go-nats"
   packages = [".","encoders/builtin","util"]
-  revision = "29f9728a183bf3fa7e809e14edac00b33be72088"
-  version = "v1.3.0"
+  revision = "d66cb54e6b7bdd93f0b28afc8450d84c780dfb68"
+  version = "v1.4.0"
 
 [[projects]]
   name = "github.com/nats-io/nuid"
@@ -94,19 +107,19 @@
   branch = "master"
   name = "github.com/opentracing/opentracing-go"
   packages = [".","ext","log"]
-  revision = "8ebe5d4e236eed9fd88e593c288bfb804d630b8c"
+  revision = "1361b9cd60be79c4c3a7fa9841b3c132e40066a7"
 
 [[projects]]
   branch = "master"
   name = "github.com/openzipkin/zipkin-go-opentracing"
   packages = [".","flag","thrift/gen-go/scribe","thrift/gen-go/zipkincore","types","wire"]
-  revision = "37e942825de0f846d15acc3bc9d027c9134a9b25"
+  revision = "32e345db3b0ba2ad0ffb5f03cb448e5a39da0096"
 
 [[projects]]
   name = "github.com/pierrec/lz4"
   packages = ["."]
-  revision = "5c9560bfa9ace2bf86080bf40d46b34ae44604df"
-  version = "v1.0"
+  revision = "2fcda4cb7018ce05a25959d2fe08c83e3329f169"
+  version = "v1.1"
 
 [[projects]]
   name = "github.com/pierrec/xxHash"
@@ -124,31 +137,25 @@
   branch = "master"
   name = "github.com/rcrowley/go-metrics"
   packages = ["."]
-  revision = "1f30fe9094a513ce4c700b9a54458bbb0c96996c"
+  revision = "e181e095bae94582363434144c61a9653aff6e50"
 
 [[projects]]
   branch = "master"
   name = "github.com/satori/go.uuid"
   packages = ["."]
-  revision = "5bf94b69c6b68ee1b541973bb8e1144db23a194b"
+  revision = "36e9d2ebbde5e3f13ab2e25625fd453271d6522e"
 
 [[projects]]
   name = "github.com/stretchr/testify"
   packages = ["assert"]
-  revision = "69483b4bd14f5845b5a1e55bca19e954e827f1d0"
-  version = "v1.1.4"
-
-[[projects]]
-  name = "github.com/vmihailenco/msgpack"
-  packages = [".","codes"]
-  revision = "de4b4857c10538d591bee30e8114176008f8b9d0"
-  version = "v3.1.2"
+  revision = "b91bfb9ebec76498946beb6af7c0230c7cc7ba6c"
+  version = "v1.2.0"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context"]
-  revision = "66aacef3dd8a676686c7ae3716979581e8b03c47"
+  revision = "5ccada7d0a7ba9aeb5d3aca8d3501b4c2a509fec"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -159,6 +166,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a18758d91aca0beec085a729655537f7f10d8d8bac4cd61ea43919515682edf2"
+  inputs-digest = "13d0b5014d38453c7662a04b9b3a025755c24122097d15dcb8b7d73347dadfac"
   solver-name = "gps-cdcl"
   solver-version = 1
