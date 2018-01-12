@@ -22,8 +22,9 @@ type Error struct {
 // New error object
 func New(code string) *Error {
 	_, file, line, _ := runtime.Caller(1)
+	uid, _ := uuid.NewV4()
 	return &Error{
-		ID:   uuid.NewV4().String(),
+		ID:   uid.String(),
 		Code: code,
 		LOC: LineOfCode{
 			file,
