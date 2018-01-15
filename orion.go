@@ -154,6 +154,12 @@ func (s *Service) Call(req interfaces.Request, raw interface{}) {
 
 	err = s.Codec.Decode(b, res)
 	if err != nil {
+		s.Logger.
+			CreateMessage("ORION_DECODE " + req.GetPath()).
+			SetLevel(logger.ERROR).
+			SetID(req.GetID()).
+			SetParams(err).
+			Send()
 		res.SetError(oerror.New("ORION_DECODE").SetMessage(err.Error()))
 		return
 	}
