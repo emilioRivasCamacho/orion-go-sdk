@@ -119,6 +119,12 @@ func (m *Message) SetParams(p interface{}) *Message {
 	return m
 }
 
+func (message *Message) SetLineOfCode(code oerror.LineOfCode) *Message {
+	message.args["LOC"] = code.File + ":" + strconv.Itoa(code.Line)
+
+	return message
+}
+
 // Send message
 func (m *Message) Send() {
 	for key, value := range DefaultParams {
@@ -158,11 +164,6 @@ func (m *Message) log(data string) {
 		log.Info("Debug %s", data)
 	}
 
-}
-func (message *Message) SetLineOfCode(code oerror.LineOfCode) *Message {
-	message.args["LOC"] = code.File + ":" + strconv.Itoa(code.Line)
-
-	return message
 }
 
 func setVariables() {
