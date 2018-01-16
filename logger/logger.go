@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/op/go-logging"
-
 	"github.com/betit/orion-go-sdk/env"
+	oerror "github.com/betit/orion-go-sdk/error"
 	"github.com/duythinht/gelf/client"
+	logging "github.com/op/go-logging"
 )
 
 var (
@@ -117,6 +117,12 @@ func (m *Message) SetParams(p interface{}) *Message {
 	b, _ := json.Marshal(p)
 	m.args["params"] = string(b)
 	return m
+}
+
+func (message *Message) SetLineOfCode(code oerror.LineOfCode) *Message {
+	message.args["LOC"] = code.File + ":" + strconv.Itoa(code.Line)
+
+	return message
 }
 
 // Send message

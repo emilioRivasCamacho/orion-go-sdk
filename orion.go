@@ -54,8 +54,10 @@ func New(name string, options ...Option) *Service {
 		opts.Logger = logger.New(name)
 	}
 
+	uid, _ := uuid.NewV4()
+
 	return &Service{
-		ID:        uuid.NewV4().String(),
+		ID:        uid.String(),
 		Name:      name,
 		Timeout:   200,
 		Codec:     opts.Codec,
@@ -152,6 +154,12 @@ func (s *Service) Call(req interfaces.Request, raw interface{}) {
 
 	err = s.Codec.Decode(b, res)
 	if err != nil {
+		s.Logger.
+			CreateMessage("ORION_DECODE " + req.GetPath()).
+			SetLevel(logger.ERROR).
+			SetID(req.GetID()).
+			SetParams(err).
+			Send()
 		res.SetError(oerror.New("ORION_DECODE").SetMessage(err.Error()))
 		return
 	}
@@ -229,6 +237,7 @@ func (s Service) logResponse(rawReq, rawRes interface{}, logging bool) {
 				CreateMessage(req.GetPath()).
 				SetLevel(logger.ERROR).
 				SetID(req.GetID()).
+				SetLineOfCode(err.LOC).
 				SetParams(err).
 				Send()
 		}
