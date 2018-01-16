@@ -16,7 +16,7 @@ type Error struct {
 	ID      string     `json:"id" msgpack:"id"`
 	Code    string     `json:"code" msgpack:"code"`
 	Message string     `json:"message" msgpack:"message"`
-	LOC     LineOfCode `json:"-" msgpack:"-"`
+	LOC     LineOfCode `json:"LOC" msgpack:"-"`
 }
 
 // New error object
