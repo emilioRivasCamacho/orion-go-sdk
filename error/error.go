@@ -36,6 +36,11 @@ func (e *Error) SetMessage(msg string) *Error {
 	return e
 }
 
+func (e *Error) SetLineOfCode(loc LineOfCode) *Error {
+	e.LOC = loc
+	return e
+}
+
 // Error returns the error message
 func (e Error) Error() string {
 	return e.Message
