@@ -141,26 +141,35 @@ func (s *Service) Call(req interfaces.Request, raw interface{}) {
 
 	encoded, err := s.Codec.Encode(req)
 	if err != nil {
-		res.SetError(oerror.New("ORION_ENCODE").SetMessage(err.Error()))
+		oerr := oerror.New("ORION_ENCODE").SetMessage(err.Error())
+		oerr.LOC = oerror.GenerateLOC(1)
+		res.SetError(oerr)
 		return
 	}
 
 	path := replaceOmitEmpty(req.GetPath(), "/", ".")
 	b, err := s.Transport.Request(path, encoded, s.getTimeout(req))
 	if err != nil {
-		res.SetError(oerror.New("ORION_TRANSPORT").SetMessage(err.Error()))
+		oerr := oerror.New("ORION_TRANSPORT").SetMessage(err.Error())
+		oerr.LOC = oerror.GenerateLOC(1)
+		res.SetError(oerr)
 		return
 	}
 
 	err = s.Codec.Decode(b, res)
 	if err != nil {
+		oerr := oerror.New("ORION_DECODE").SetMessage(err.Error())
+		oerr.LOC = oerror.GenerateLOC(1)
+		res.SetError(oerr)
+
 		s.Logger.
 			CreateMessage("ORION_DECODE " + req.GetPath()).
 			SetLevel(logger.ERROR).
 			SetID(req.GetID()).
 			SetParams(err).
+			SetLineOfCode(oerr.LOC).
 			Send()
-		res.SetError(oerror.New("ORION_DECODE").SetMessage(err.Error()))
+
 		return
 	}
 

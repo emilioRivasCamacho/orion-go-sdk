@@ -21,15 +21,12 @@ type Error struct {
 
 // New error object
 func New(code string) *Error {
-	_, file, line, _ := runtime.Caller(1)
+
 	uid, _ := uuid.NewV4()
 	return &Error{
 		ID:   uid.String(),
 		Code: code,
-		LOC: LineOfCode{
-			file,
-			line,
-		},
+		LOC:  GenerateLOC(1),
 	}
 }
 
@@ -42,4 +39,12 @@ func (e *Error) SetMessage(msg string) *Error {
 // Error returns the error message
 func (e Error) Error() string {
 	return e.Message
+}
+
+func GenerateLOC(depth int) LineOfCode {
+	_, file, line, _ := runtime.Caller(depth + 1)
+	return LineOfCode{
+		file,
+		line,
+	}
 }
