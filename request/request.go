@@ -1,6 +1,8 @@
 package request
 
 import (
+	"time"
+
 	"github.com/betit/orion-go-sdk/codec/msgpack"
 	"github.com/betit/orion-go-sdk/interfaces"
 )
@@ -95,6 +97,13 @@ func (r Request) GetTimeout() *int {
 // SetTimeout for req
 func (r *Request) SetTimeout(t int) interfaces.Request {
 	r.Timeout = &t
+	return r
+}
+
+// SetTimeoutDuration for req based on milliseconds
+func (r *Request) SetTimeoutDuration(t time.Duration) interfaces.Request {
+	t2 := int(t / time.Millisecond)
+	r.Timeout = &t2
 	return r
 }
 

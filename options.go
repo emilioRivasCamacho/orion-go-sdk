@@ -6,10 +6,13 @@ import "github.com/betit/orion-go-sdk/interfaces"
 
 // Options object
 type Options struct {
-	Codec     interfaces.Codec
-	Transport interfaces.Transport
-	Tracer    interfaces.Tracer
-	Logger    interfaces.Logger
+	Codec                 interfaces.Codec
+	Transport             interfaces.Transport
+	Tracer                interfaces.Tracer
+	Logger                interfaces.Logger
+	RegisterToWatchdog    bool
+	EnableStatusEndpoints bool
+	WatchdogServiceName   string
 }
 
 // Option type
