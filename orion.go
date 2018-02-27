@@ -156,12 +156,20 @@ func (s *Service) handle(path string, logging bool, handler interface{}, factory
 	})
 }
 
-func (s *Service) RegisterHealthCheck(check health.Dependency) {
-	s.HealthChecks[check.Name] = check
+func (s *Service) RegisterHealthCheck(check *health.Dependency) {
+	// We store the original check function
+	realCheck := check.CheckIsWorking
+
+	// And we change the original check function with another one which times out if
+	// the check delays too much
+	check.CheckIsWorking = func() (string, *oerror.Error) { return s.checkHealthOrTimeout(check.Name, check.Timeout, realCheck) }
+	s.HealthChecks[check.Name] = *check
+
+	// Then we restore the original object
+	check.CheckIsWorking = realCheck
 }
 
-func (s *Service) CheckHealth(checkName string) (string, *oerror.Error) {
-	check := s.HealthChecks[checkName]
+func (s *Service) checkHealthOrTimeout(name string, timeout time.Duration, check func() (string, *oerror.Error)) (string, *oerror.Error) {
 
 	resultChannel := make(chan struct {
 		str  string
@@ -170,7 +178,7 @@ func (s *Service) CheckHealth(checkName string) (string, *oerror.Error) {
 	timeoutChannel := make(chan bool)
 
 	go func() {
-		str, oerr := check.CheckIsWorking()
+		str, oerr := check()
 		resultChannel <- struct {
 			str  string
 			oerr *oerror.Error
@@ -181,7 +189,7 @@ func (s *Service) CheckHealth(checkName string) (string, *oerror.Error) {
 	}()
 
 	go func() {
-		time.Sleep(check.Timeout)
+		time.Sleep(timeout)
 		timeoutChannel <- true
 	}()
 
@@ -189,9 +197,8 @@ func (s *Service) CheckHealth(checkName string) (string, *oerror.Error) {
 	case res := <-resultChannel:
 		return res.str, res.oerr
 	case <-timeoutChannel:
-		oerr := oerror.New("HEALTH_TIMEOUT")
-		oerr.SetMessage("The health check " + checkName + " did timeout for " + string(check.Timeout/time.Second) + " seconds")
-		return "", oerr
+		oerr := oerror.New(string(health.HC_CRIT))
+		return "The health check " + name + " did timeout for " + string(timeout/time.Second) + " seconds", oerr
 	}
 }
 

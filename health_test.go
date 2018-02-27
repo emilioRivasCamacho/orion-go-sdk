@@ -16,7 +16,7 @@ func TestHealthchecks(t *testing.T) {
 
 	svc.RegisterToWatchdog = false
 
-	svc.RegisterHealthCheck(health.Dependency{
+	svc.RegisterHealthCheck(&health.Dependency{
 		Name:    "good",
 		Timeout: 10 * time.Second,
 		CheckIsWorking: func() (string, *oerror.Error) {
@@ -24,7 +24,7 @@ func TestHealthchecks(t *testing.T) {
 		},
 	})
 
-	svc.RegisterHealthCheck(health.Dependency{
+	svc.RegisterHealthCheck(&health.Dependency{
 		Name:    "bad",
 		Timeout: 10 * time.Second,
 		CheckIsWorking: func() (string, *oerror.Error) {
@@ -32,7 +32,7 @@ func TestHealthchecks(t *testing.T) {
 		},
 	})
 
-	svc.RegisterHealthCheck(health.Dependency{
+	svc.RegisterHealthCheck(&health.Dependency{
 		Name:    "warn",
 		Timeout: 10 * time.Second,
 		CheckIsWorking: func() (string, *oerror.Error) {
@@ -41,7 +41,7 @@ func TestHealthchecks(t *testing.T) {
 		IsInternal: true,
 	})
 
-	svc.RegisterHealthCheck(health.Dependency{
+	svc.RegisterHealthCheck(&health.Dependency{
 		Name:    "timeout",
 		Timeout: 1 * time.Second,
 		CheckIsWorking: func() (string, *oerror.Error) {
@@ -76,6 +76,8 @@ func TestHealthchecks(t *testing.T) {
 		done <- res.Payload
 
 		req = &Request{}
+		req.Timeout = new(int)
+		*req.Timeout = 3000
 		req.SetPath("/healthTest/status.timeout")
 
 		svc.Call(req, res)
