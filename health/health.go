@@ -26,13 +26,13 @@ func DefaultWatchdogServiceName() string {
 
 type WatchdogPingRequest struct {
 	request.Request
-	ID   string `msgpack:"id"`
-	Name string `msgpack:"name"`
+	ServiceID string `msgpack:"serviceId"`
+	Name      string `msgpack:"name"`
 }
 
 type WatchdogRegisterRequest struct {
 	request.Request
-	ID        string   `msgpack:"id"`
+	ServiceID string   `msgpack:"serviceId"`
 	Name      string   `msgpack:"name"`
 	Endpoints []string `msgpack:"endpoints"`
 }
@@ -64,14 +64,14 @@ func WatchdogRegisterLoop(
 	}()
 
 	pingRequest := WatchdogPingRequest{
-		ID:   uid,
+		ServiceID:   uid,
 		Name: name,
 	}
 
 	pingRequest.SetTimeoutDuration(watchdogTimeout)
 
 	registerRequest := WatchdogRegisterRequest{
-		ID:        uid,
+		ServiceID:        uid,
 		Name:      name,
 		Endpoints: listOfEndpoints,
 	}

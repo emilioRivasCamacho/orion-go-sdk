@@ -33,7 +33,6 @@ type Service struct {
 	Transport             interfaces.Transport
 	Tracer                interfaces.Tracer
 	Logger                interfaces.Logger
-	Endpoints             []string
 	RegisterToWatchdog    bool
 	EnableStatusEndpoints bool
 	WatchdogServiceName   string
@@ -157,7 +156,7 @@ func (s *Service) handle(path string, logging bool, handler interface{}, factory
 }
 
 func (s *Service) handleHealthCheck(healthCheckName string, handler interface{}, factory Factory) {
-	route := fmt.Sprintf("%s.%s", s.ID, healthCheckName)
+	route := fmt.Sprintf("%s.%s", s.Name + s.ID, healthCheckName)
 
 	method := reflect.ValueOf(handler)
 	s.checkHandler(method)
@@ -167,7 +166,7 @@ func (s *Service) handleHealthCheck(healthCheckName string, handler interface{},
 		reqT = reqT.Elem()
 	}
 
-	s.Transport.Handle(route, s.ID, func(data []byte) []byte {
+	s.Transport.Handle(route, s.Name + s.ID, func(data []byte) []byte {
 		req := factory()
 		req.SetError(s.Codec.Decode(data, req))
 
@@ -273,8 +272,14 @@ func (s *Service) Call(req interfaces.Request, raw interface{}) {
 func (s *Service) commsWithWatchdog() {
 	var resultChannel chan interfaces.Response
 
+	endpoints := make([]string, 0)
+
+	for name,_ := range s.HealthChecks {
+		endpoints = append(endpoints, name)
+	}
+
 	// This handles the loop for communications with the Watchdog
-	s.closeWatchdogChannel, resultChannel = health.WatchdogRegisterLoop(s.Name, s.ID, s.Endpoints,
+	s.closeWatchdogChannel, resultChannel = health.WatchdogRegisterLoop(s.Name, s.ID, endpoints,
 		func(endpoint string, request interfaces.Request) interfaces.Response {
 			request.SetPath(s.WatchdogServiceName + endpoint)
 			res := &response.Response{}
