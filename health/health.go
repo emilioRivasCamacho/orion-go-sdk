@@ -9,7 +9,7 @@ import (
 	"github.com/betit/orion-go-sdk/response"
 )
 
-var (
+const (
 	// How long will take the service to ping the watchdog
 	watchdogLoopPing = 1 * time.Minute
 

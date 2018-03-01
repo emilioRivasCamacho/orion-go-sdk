@@ -156,6 +156,36 @@ func (s *Service) handle(path string, logging bool, handler interface{}, factory
 	})
 }
 
+func (s *Service) handleHealthCheck(healthCheckName string, handler interface{}, factory Factory) {
+	route := fmt.Sprintf("%s.%s", s.ID, healthCheckName)
+
+	method := reflect.ValueOf(handler)
+	s.checkHandler(method)
+
+	reqT := method.Type().In(0)
+	if reqT.Kind() == reflect.Ptr {
+		reqT = reqT.Elem()
+	}
+
+	s.Transport.Handle(route, s.ID, func(data []byte) []byte {
+		req := factory()
+		req.SetError(s.Codec.Decode(data, req))
+
+		s.logRequest(req, true)
+
+		res := method.Call([]reflect.Value{reflect.ValueOf(req)})[0].Interface()
+
+		s.logResponse(req, res, true)
+
+		b, err := s.Codec.Encode(res)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		return b
+	})
+}
+
 func (s *Service) RegisterHealthCheck(check *health.Dependency) {
 	// We store the original check function
 	realCheck := check.CheckIsWorking
@@ -276,11 +306,11 @@ func (s *Service) commsWithWatchdog() {
 func (s *Service) listenToHealthChecks() {
 	// Status
 	for name, check := range s.HealthChecks {
-		s.Handle("status."+name, health.DependencyHandleGenerator(check), health.DependencyFactory)
+		s.handleHealthCheck("status."+name, health.DependencyHandleGenerator(check), health.DependencyFactory)
 	}
 
-	s.Handle("status.am-i-up", health.AmIUpHandle, health.AmIUpFactory)
-	s.Handle("status.aggregate", health.AggregateHandleGenerator(s.HealthChecks), health.AggregateFactory)
+	s.handleHealthCheck("status.am-i-up", health.AmIUpHandle, health.AmIUpFactory)
+	s.handleHealthCheck("status.aggregate", health.AggregateHandleGenerator(s.HealthChecks), health.AggregateFactory)
 
 	// s.Handle("status/about")
 	// s.Handle("status/traverse")

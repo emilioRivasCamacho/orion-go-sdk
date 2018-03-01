@@ -65,7 +65,7 @@ type DependencyCheckResult struct {
 	Details     *string           `msgpack:"details"`
 }
 
-func CheckToStructure(checkName string, str string, err *oerror.Error) DependencyCheckResult {
+func checkToStructure(checkName string, str string, err *oerror.Error) DependencyCheckResult {
 	res := DependencyCheckResult{}
 	if err != nil {
 		res.Result = HealthCheckResult(err.Code)
@@ -94,7 +94,7 @@ func AggregateHandleGenerator(checks map[string]Dependency) func(req *AggregateR
 			for name, check := range checks {
 				if req.Params.Type == nil || (*req.Params.Type == INTERNAL) == check.IsInternal {
 					str, err := check.CheckIsWorking()
-					res.Payload = append(res.Payload, CheckToStructure(name, str, err))
+					res.Payload = append(res.Payload, checkToStructure(name, str, err))
 				}
 			}
 		}
@@ -128,7 +128,7 @@ func DependencyHandleGenerator(check Dependency) func(req *DependencyRequest) *D
 			res.Error.SetMessage(err.Error())
 		} else {
 			str, err := check.CheckIsWorking()
-			res.Payload = CheckToStructure(check.Name, str, err)
+			res.Payload = checkToStructure(check.Name, str, err)
 		}
 		return res
 	}

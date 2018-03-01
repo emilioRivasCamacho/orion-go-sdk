@@ -13,6 +13,7 @@ import (
 func TestHealthchecks(t *testing.T) {
 
 	svc := New("healthTest")
+	id := svc.ID
 
 	svc.RegisterToWatchdog = false
 
@@ -55,13 +56,13 @@ func TestHealthchecks(t *testing.T) {
 	go svc.Listen(func() {
 
 		req := &Request{}
-		req.SetPath("/healthTest/status.am-i-up")
+		req.SetPath("/"+id+"/status.am-i-up")
 
 		genres := &Response{}
 		svc.Call(req, genres)
 
 		req = &Request{}
-		req.SetPath("/healthTest/status.good")
+		req.SetPath("/"+id+"/status.good")
 
 		res := &health.DependencyResponse{}
 		svc.Call(req, res)
@@ -69,7 +70,7 @@ func TestHealthchecks(t *testing.T) {
 		done <- res.Payload
 
 		req = &Request{}
-		req.SetPath("/healthTest/status.bad")
+		req.SetPath("/"+id+"/status.bad")
 
 		svc.Call(req, res)
 
@@ -78,14 +79,14 @@ func TestHealthchecks(t *testing.T) {
 		req = &Request{}
 		req.Timeout = new(int)
 		*req.Timeout = 3000
-		req.SetPath("/healthTest/status.timeout")
+		req.SetPath("/"+id+"/status.timeout")
 
 		svc.Call(req, res)
 
 		done <- res.Payload
 
 		req = &Request{}
-		req.SetPath("/healthTest/status.warn")
+		req.SetPath("/"+id+"/status.warn")
 
 		svc.Call(req, res)
 
@@ -95,7 +96,7 @@ func TestHealthchecks(t *testing.T) {
 		req2.Params.Type = new(health.AggregationType)
 		*req2.Params.Type = health.INTERNAL
 
-		req2.SetPath("/healthTest/status.aggregate")
+		req2.SetPath("/"+id+"/status.aggregate")
 
 		res2 := &health.AggregateResponse{}
 		svc.Call(req2, res2)
