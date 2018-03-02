@@ -30,17 +30,36 @@ type WatchdogPingRequest struct {
 	Name      string `msgpack:"name"`
 }
 
+type WatchdogPingResponse struct {
+	response.Response
+	Payload struct {
+		Status HealthCheckResult `msgpack:"status"`
+	} `msgpack:"payload"`
+}
+
+type WatchdogDependency struct {
+	Name    string        `msgpack:"name"`
+	Timeout time.Duration `msgpack:"timeout"`
+}
+
 type WatchdogRegisterRequest struct {
 	request.Request
-	ServiceID string   `msgpack:"serviceId"`
-	Name      string   `msgpack:"name"`
-	Endpoints []string `msgpack:"endpoints"`
+	ServiceID    string               `msgpack:"serviceId"`
+	Name         string               `msgpack:"name"`
+	Dependencies []WatchdogDependency `msgpack:"dependencies"`
+}
+
+type WatchdogRegisterResponse struct {
+	response.Response
+	Payload struct {
+		Status HealthCheckResult `msgpack:"status"`
+	} `msgpack:"payload"`
 }
 
 func WatchdogRegisterLoop(
 	name string,
 	uid string,
-	listOfEndpoints []string,
+	listOfDependencies []WatchdogDependency,
 	requestToWatchdog func(endpoint string, request interfaces.Request) interfaces.Response) (closeChannel chan bool, responseChannel chan interfaces.Response) {
 	closeChannel = make(chan bool)
 	responseChannel = make(chan interfaces.Response)
@@ -64,16 +83,16 @@ func WatchdogRegisterLoop(
 	}()
 
 	pingRequest := WatchdogPingRequest{
-		ServiceID:   uid,
-		Name: name,
+		ServiceID: uid,
+		Name:      name,
 	}
 
 	pingRequest.SetTimeoutDuration(watchdogTimeout)
 
 	registerRequest := WatchdogRegisterRequest{
-		ServiceID:        uid,
-		Name:      name,
-		Endpoints: listOfEndpoints,
+		ServiceID:    uid,
+		Name:         name,
+		Dependencies: listOfDependencies,
 	}
 
 	// Then infinite loop of register/ping or close

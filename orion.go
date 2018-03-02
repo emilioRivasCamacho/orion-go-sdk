@@ -156,7 +156,7 @@ func (s *Service) handle(path string, logging bool, handler interface{}, factory
 }
 
 func (s *Service) handleHealthCheck(healthCheckName string, handler interface{}, factory Factory) {
-	route := fmt.Sprintf("%s.%s", s.Name + s.ID, healthCheckName)
+	route := fmt.Sprintf("%s.%s", s.Name+s.ID, healthCheckName)
 
 	method := reflect.ValueOf(handler)
 	s.checkHandler(method)
@@ -166,7 +166,7 @@ func (s *Service) handleHealthCheck(healthCheckName string, handler interface{},
 		reqT = reqT.Elem()
 	}
 
-	s.Transport.Handle(route, s.Name + s.ID, func(data []byte) []byte {
+	s.Transport.Handle(route, s.Name+s.ID, func(data []byte) []byte {
 		req := factory()
 		req.SetError(s.Codec.Decode(data, req))
 
@@ -272,10 +272,10 @@ func (s *Service) Call(req interfaces.Request, raw interface{}) {
 func (s *Service) commsWithWatchdog() {
 	var resultChannel chan interfaces.Response
 
-	endpoints := make([]string, 0)
+	endpoints := make([]health.WatchdogDependency, 0)
 
-	for name,_ := range s.HealthChecks {
-		endpoints = append(endpoints, name)
+	for name, hc := range s.HealthChecks {
+		endpoints = append(endpoints, health.WatchdogDependency{name, hc.Timeout})
 	}
 
 	// This handles the loop for communications with the Watchdog
@@ -316,7 +316,6 @@ func (s *Service) listenToHealthChecks() {
 
 	s.handleHealthCheck("status.am-i-up", health.AmIUpHandle, health.AmIUpFactory)
 	s.handleHealthCheck("status.aggregate", health.AggregateHandleGenerator(s.HealthChecks), health.AggregateFactory)
-
 	// s.Handle("status/about")
 	// s.Handle("status/traverse")
 }
