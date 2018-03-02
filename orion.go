@@ -21,6 +21,11 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+var (
+	registerToWatchdogByDefault *bool
+	verbose                     *bool
+)
+
 // Factory func type - the one that creates the req obj
 type Factory = func() interfaces.Request
 
@@ -41,13 +46,15 @@ type Service struct {
 }
 
 func DefaultServiceOptions(opt *Options) {
-	opt.RegisterToWatchdog = true
-	opt.EnableStatusEndpoints = true
+	opt.RegisterToWatchdog = *registerToWatchdogByDefault
+	opt.EnableStatusEndpoints = *registerToWatchdogByDefault
 	opt.WatchdogServiceName = health.DefaultWatchdogServiceName()
 }
 
 // New orion service
 func New(name string, options ...Option) *Service {
+	ParseFlags()
+
 	opts := &Options{}
 
 	DefaultServiceOptions(opts)
@@ -68,7 +75,7 @@ func New(name string, options ...Option) *Service {
 	}
 
 	if opts.Logger == nil {
-		opts.Logger = logger.New(name)
+		opts.Logger = logger.New(name, *verbose)
 	}
 
 	uid, _ := uuid.NewV4()

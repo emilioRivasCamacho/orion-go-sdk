@@ -14,6 +14,7 @@ func TestHealthchecks(t *testing.T) {
 
 	svc := New("healthTest")
 	svc.RegisterToWatchdog = false
+	svc.EnableStatusEndpoints = true
 	id := svc.ID
 
 	svc.RegisterHealthCheck(&health.Dependency{
