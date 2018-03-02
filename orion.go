@@ -269,6 +269,11 @@ func (s *Service) Call(req interfaces.Request, raw interface{}) {
 	closeTracer()
 }
 
+type responseWithAnyPayload struct {
+	response.Response
+	Payload interface{} `msgpack:"payload"`
+}
+
 func (s *Service) commsWithWatchdog() {
 	var resultChannel chan interfaces.Response
 
@@ -282,7 +287,7 @@ func (s *Service) commsWithWatchdog() {
 	s.closeWatchdogChannel, resultChannel = health.WatchdogRegisterLoop(s.Name, s.ID, endpoints,
 		func(endpoint string, request interfaces.Request) interfaces.Response {
 			request.SetPath(s.WatchdogServiceName + endpoint)
-			res := &response.Response{}
+			res := &responseWithAnyPayload{}
 			s.Call(request, res)
 			return res
 		})

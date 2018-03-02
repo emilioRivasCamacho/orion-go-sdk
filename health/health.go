@@ -21,7 +21,7 @@ const (
 )
 
 func DefaultWatchdogServiceName() string {
-	return "Watchdog"
+	return "watchdog"
 }
 
 type WatchdogPingRequest struct {
@@ -74,12 +74,14 @@ func WatchdogRegisterLoop(
 
 	// Loop every loopTime time
 	go func() {
-		nextTime := <-loopTime
-		time.Sleep(nextTime)
-		if endThisLoop {
-			return
+		for {
+			nextTime := <-loopTime
+			time.Sleep(nextTime)
+			if endThisLoop {
+				return
+			}
+			timeoutChannel <- true
 		}
-		timeoutChannel <- true
 	}()
 
 	pingRequest := WatchdogPingRequest{
