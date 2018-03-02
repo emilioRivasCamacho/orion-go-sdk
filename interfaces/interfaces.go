@@ -1,6 +1,8 @@
 package interfaces
 
 import (
+	"time"
+
 	oerror "github.com/betit/orion-go-sdk/error"
 	"github.com/betit/orion-go-sdk/logger"
 )
@@ -40,6 +42,7 @@ type Request interface {
 	SetTracerData(map[string][]string) Request
 	GetTimeout() *int
 	SetTimeout(int) Request
+	SetTimeoutDuration(duration time.Duration) Request
 	GetMeta() map[string]string
 	SetMeta(map[string]string) Request
 	GetMetaProp(key string) string

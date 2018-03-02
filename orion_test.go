@@ -197,6 +197,8 @@ func TestCustomReqRes(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
+	svc.RegisterToWatchdog = false
+	svc.EnableStatusEndpoints = false
 	svc.Listen(func() {
 		tests := m.Run()
 		os.Exit(tests)

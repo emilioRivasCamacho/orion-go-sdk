@@ -2,7 +2,6 @@ package logger
 
 import (
 	"encoding/json"
-	"flag"
 	"os"
 	"strconv"
 	"time"
@@ -19,20 +18,21 @@ var (
 	// Host for graylog
 	Host = ""
 	// Port for graylog
-	Port    = ""
-	verbose *bool
-	log     *logging.Logger
+	Port = ""
+	log  *logging.Logger
 )
 
 // Graylog logger
 type Graylog struct {
 	client  *client.Gelf
 	service string
+	verbose bool
 }
 
 // Logger interface
 type Logger interface {
 	CreateMessage(message string) *Message
+	IsVerbose() bool
 	Send(string)
 }
 
@@ -42,8 +42,7 @@ func init() {
 }
 
 // New graylog logger
-func New(serviceName string) *Graylog {
-	parseFlags()
+func New(serviceName string, verbose bool) *Graylog {
 
 	port, err := strconv.Atoi(Port)
 	if err != nil {
@@ -58,6 +57,7 @@ func New(serviceName string) *Graylog {
 	return &Graylog{
 		client:  c,
 		service: serviceName,
+		verbose: verbose,
 	}
 }
 
@@ -77,6 +77,10 @@ func (g *Graylog) CreateMessage(message string) *Message {
 // Send message to graylog
 func (g *Graylog) Send(m string) {
 	g.client.Send(m)
+}
+
+func (g *Graylog) IsVerbose() bool {
+	return g.verbose
 }
 
 // Message object
@@ -134,7 +138,7 @@ func (m *Message) Send() {
 	b, _ := json.Marshal(m.args)
 	data := string(b)
 
-	if *verbose {
+	if m.logger.IsVerbose() {
 		m.log(data)
 	}
 
@@ -172,17 +176,6 @@ func setVariables() {
 	}
 	if Port == "" {
 		Port = env.Get("ORION_LOGGER_PORT", "12201")
-	}
-}
-
-func parseFlags() {
-	f := flag.Lookup("verbose")
-	if f == nil {
-		verbose = flag.Bool("verbose", false, "Enable verbose (console) logging")
-		flag.Parse()
-	} else {
-		b, _ := strconv.ParseBool(f.Value.String())
-		verbose = &b
 	}
 }
 
