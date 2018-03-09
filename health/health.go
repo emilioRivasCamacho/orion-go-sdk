@@ -26,8 +26,10 @@ func DefaultWatchdogServiceName() string {
 
 type WatchdogPingRequest struct {
 	request.Request
-	ServiceID string `msgpack:"serviceId"`
-	Name      string `msgpack:"name"`
+	Params struct {
+		ServiceID string `msgpack:"serviceId"`
+		Name      string `msgpack:"name"`
+	} `msgpack:"params"`
 }
 
 type WatchdogPingResponse struct {
@@ -44,9 +46,11 @@ type WatchdogDependency struct {
 
 type WatchdogRegisterRequest struct {
 	request.Request
-	ServiceID    string               `msgpack:"serviceId"`
-	Name         string               `msgpack:"name"`
-	Dependencies []WatchdogDependency `msgpack:"dependencies"`
+	Params struct {
+		ServiceID    string               `msgpack:"serviceId"`
+		Name         string               `msgpack:"name"`
+		Dependencies []WatchdogDependency `msgpack:"dependencies"`
+	} `msgpack:"params"`
 }
 
 type WatchdogRegisterResponse struct {
@@ -85,16 +89,27 @@ func WatchdogRegisterLoop(
 	}()
 
 	pingRequest := WatchdogPingRequest{
-		ServiceID: uid,
-		Name:      name,
+		Params: struct {
+			ServiceID string `msgpack:"serviceId"`
+			Name      string `msgpack:"name"`
+		}{
+			ServiceID: uid,
+			Name:      name,
+		},
 	}
 
 	pingRequest.SetTimeoutDuration(watchdogTimeout)
 
 	registerRequest := WatchdogRegisterRequest{
-		ServiceID:    uid,
-		Name:         name,
-		Dependencies: listOfDependencies,
+		Params: struct {
+			ServiceID    string               `msgpack:"serviceId"`
+			Name         string               `msgpack:"name"`
+			Dependencies []WatchdogDependency `msgpack:"dependencies"`
+		}{
+			ServiceID:    uid,
+			Name:         name,
+			Dependencies: listOfDependencies,
+		},
 	}
 
 	// Then infinite loop of register/ping or close
