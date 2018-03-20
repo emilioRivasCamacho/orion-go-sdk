@@ -1,9 +1,9 @@
 package response
 
 import (
-	"github.com/betit/orion-go-sdk/codec/msgpack"
-	oerror "github.com/betit/orion-go-sdk/error"
-	"github.com/betit/orion-go-sdk/interfaces"
+	"github.com/gig/orion-go-sdk/codec/msgpack"
+	oerror "github.com/gig/orion-go-sdk/error"
+	"github.com/gig/orion-go-sdk/interfaces"
 )
 
 // Response from the service

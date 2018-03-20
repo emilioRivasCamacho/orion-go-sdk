@@ -3,8 +3,8 @@ package request
 import (
 	"time"
 
-	"github.com/betit/orion-go-sdk/codec/msgpack"
-	"github.com/betit/orion-go-sdk/interfaces"
+	"github.com/gig/orion-go-sdk/codec/msgpack"
+	"github.com/gig/orion-go-sdk/interfaces"
 )
 
 // Meta type for req

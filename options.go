@@ -1,6 +1,6 @@
 package orion
 
-import "github.com/betit/orion-go-sdk/interfaces"
+import "github.com/gig/orion-go-sdk/interfaces"
 
 // client-service
 

@@ -10,14 +10,14 @@ import (
 
 	"time"
 
-	"github.com/betit/orion-go-sdk/codec/msgpack"
-	oerror "github.com/betit/orion-go-sdk/error"
-	"github.com/betit/orion-go-sdk/health"
-	"github.com/betit/orion-go-sdk/interfaces"
-	"github.com/betit/orion-go-sdk/logger"
-	"github.com/betit/orion-go-sdk/response"
-	"github.com/betit/orion-go-sdk/tracer"
-	"github.com/betit/orion-go-sdk/transport/nats"
+	"github.com/gig/orion-go-sdk/codec/msgpack"
+	oerror "github.com/gig/orion-go-sdk/error"
+	"github.com/gig/orion-go-sdk/health"
+	"github.com/gig/orion-go-sdk/interfaces"
+	"github.com/gig/orion-go-sdk/logger"
+	"github.com/gig/orion-go-sdk/response"
+	"github.com/gig/orion-go-sdk/tracer"
+	"github.com/gig/orion-go-sdk/transport/nats"
 	uuid "github.com/satori/go.uuid"
 )
 

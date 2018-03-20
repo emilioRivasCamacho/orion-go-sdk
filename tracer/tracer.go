@@ -8,8 +8,8 @@ import (
 	"github.com/opentracing/opentracing-go/ext"
 	zipkin "github.com/openzipkin/zipkin-go-opentracing"
 
-	"github.com/betit/orion-go-sdk/env"
-	"github.com/betit/orion-go-sdk/interfaces"
+	"github.com/gig/orion-go-sdk/env"
+	"github.com/gig/orion-go-sdk/interfaces"
 )
 
 var (
