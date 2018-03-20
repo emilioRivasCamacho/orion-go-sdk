@@ -14,12 +14,6 @@
   version = "0.11.0"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/betit/msgpack"
-  packages = [".","codes"]
-  revision = "2c1beed37aa801956e6c4ff7b1a0e7da59059872"
-
-[[projects]]
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   revision = "346938d642f2ec3594ed81d874461961cd0faa76"
@@ -28,7 +22,11 @@
 [[projects]]
   branch = "master"
   name = "github.com/duythinht/gelf"
-  packages = ["chunk","client","pool"]
+  packages = [
+    "chunk",
+    "client",
+    "pool"
+  ]
   revision = "5551c01bebbc6b2dba42c90e4a48a1e291dbc03e"
 
 [[projects]]
@@ -48,6 +46,12 @@
   packages = ["."]
   revision = "44cc805cf13205b55f69e14bcb69867d1ae92f98"
   version = "v1.1.0"
+
+[[projects]]
+  name = "github.com/gig/msgpack"
+  packages = ["."]
+  revision = "40b1cac89761d843bbb96b8b27c746ba5937322a"
+  version = "v3.2.3"
 
 [[projects]]
   name = "github.com/go-logfmt/logfmt"
@@ -81,7 +85,11 @@
 
 [[projects]]
   name = "github.com/nats-io/go-nats"
-  packages = [".","encoders/builtin","util"]
+  packages = [
+    ".",
+    "encoders/builtin",
+    "util"
+  ]
   revision = "d66cb54e6b7bdd93f0b28afc8450d84c780dfb68"
   version = "v1.4.0"
 
@@ -106,13 +114,24 @@
 [[projects]]
   branch = "master"
   name = "github.com/opentracing/opentracing-go"
-  packages = [".","ext","log"]
+  packages = [
+    ".",
+    "ext",
+    "log"
+  ]
   revision = "1361b9cd60be79c4c3a7fa9841b3c132e40066a7"
 
 [[projects]]
   branch = "master"
   name = "github.com/openzipkin/zipkin-go-opentracing"
-  packages = [".","flag","thrift/gen-go/scribe","thrift/gen-go/zipkincore","types","wire"]
+  packages = [
+    ".",
+    "flag",
+    "thrift/gen-go/scribe",
+    "thrift/gen-go/zipkincore",
+    "types",
+    "wire"
+  ]
   revision = "32e345db3b0ba2ad0ffb5f03cb448e5a39da0096"
 
 [[projects]]
@@ -152,6 +171,12 @@
   version = "v1.2.0"
 
 [[projects]]
+  name = "github.com/vmihailenco/msgpack"
+  packages = ["codes"]
+  revision = "7eb5d7335e1aa947b407fdae890e6f55ff8debb6"
+  version = "v3.3.0"
+
+[[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context"]
@@ -159,13 +184,23 @@
 
 [[projects]]
   name = "google.golang.org/appengine"
-  packages = [".","datastore","internal","internal/app_identity","internal/base","internal/datastore","internal/log","internal/modules","internal/remote_api"]
+  packages = [
+    ".",
+    "datastore",
+    "internal",
+    "internal/app_identity",
+    "internal/base",
+    "internal/datastore",
+    "internal/log",
+    "internal/modules",
+    "internal/remote_api"
+  ]
   revision = "150dc57a1b433e64154302bdc40b6bb8aefa313a"
   version = "v1.0.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "13d0b5014d38453c7662a04b9b3a025755c24122097d15dcb8b7d73347dadfac"
+  inputs-digest = "e87013eaa8dd6f79cda0d404734c63851da142b7e6f63caa8982f334bd125ca3"
   solver-name = "gps-cdcl"
   solver-version = 1
