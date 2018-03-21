@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/betit/orion-go-sdk/env"
-	oerror "github.com/betit/orion-go-sdk/error"
+	"github.com/gig/orion-go-sdk/env"
+	oerror "github.com/gig/orion-go-sdk/error"
 	"github.com/duythinht/gelf/client"
 	logging "github.com/op/go-logging"
 )

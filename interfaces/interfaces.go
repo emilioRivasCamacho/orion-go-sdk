@@ -3,8 +3,8 @@ package interfaces
 import (
 	"time"
 
-	oerror "github.com/betit/orion-go-sdk/error"
-	"github.com/betit/orion-go-sdk/logger"
+	oerror "github.com/gig/orion-go-sdk/error"
+	"github.com/gig/orion-go-sdk/logger"
 )
 
 // Codec interface

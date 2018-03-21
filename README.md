@@ -5,18 +5,18 @@
 ## Installation
 
 ```sh
-$ go get github.com/betit/orion-go-sdk
+$ go get github.com/gig/orion-go-sdk
 ```
 
 or
 
 ```sh
-$ dep ensure -add github.com/betit/orion-go-sdk
+$ dep ensure -add github.com/gig/orion-go-sdk
 ```
 
 ## Basic example
 
-### Note - You will need to have running all of the orion [dependencies](https://github.com/betit/orion/tree/dev#development)
+### Note - You will need to have running all of the orion [dependencies](https://github.com/gig/orion/tree/dev#development)
 
 Add the following into `foo.go` and run `go run foo.go --verbose`
 
@@ -24,10 +24,10 @@ Add the following into `foo.go` and run `go run foo.go --verbose`
 package main
 
 import (
-	orion "github.com/betit/orion-go-sdk"
-	"github.com/betit/orion-go-sdk/interfaces"
-	"github.com/betit/orion-go-sdk/request"
-	"github.com/betit/orion-go-sdk/response"
+	orion "github.com/gig/orion-go-sdk"
+	"github.com/gig/orion-go-sdk/interfaces"
+	"github.com/gig/orion-go-sdk/request"
+	"github.com/gig/orion-go-sdk/response"
 )
 
 type params struct {
@@ -78,9 +78,9 @@ Then add the following into `bar.go` and run `go run bar.go`
 package main
 
 import (
-	orion "github.com/betit/orion-go-sdk"
-	"github.com/betit/orion-go-sdk/request"
-	"github.com/betit/orion-go-sdk/response"
+	orion "github.com/gig/orion-go-sdk"
+	"github.com/gig/orion-go-sdk/request"
+	"github.com/gig/orion-go-sdk/response"
 )
 
 type params struct {
@@ -131,11 +131,11 @@ $ go test -v .
 
 ## License
 
-[MIT](https://github.com/betit/orion-go-sdk/blob/master/LICENSE)
+[MIT](https://github.com/gig/orion-go-sdk/blob/master/LICENSE)
 
-[travis-image]: https://travis-ci.org/betit/orion-go-sdk.svg?branch=master
-[travis-url]: https://travis-ci.org/betit/orion-go-sdk/
-[coveralls-image]: https://coveralls.io/repos/betit/orion-go-sdk/badge.svg
-[coveralls-url]: https://coveralls.io/r/betit/orion-go-sdk
-[godoc-image]: https://godoc.org/github.com/betit/orion-go-sdk?status.svg
-[godoc-url]: https://godoc.org/github.com/betit/orion-go-sdk
+[travis-image]: https://travis-ci.org/gig/orion-go-sdk.svg?branch=master
+[travis-url]: https://travis-ci.org/gig/orion-go-sdk/
+[coveralls-image]: https://coveralls.io/repos/gig/orion-go-sdk/badge.svg
+[coveralls-url]: https://coveralls.io/r/gig/orion-go-sdk
+[godoc-image]: https://godoc.org/github.com/gig/orion-go-sdk?status.svg
+[godoc-url]: https://godoc.org/github.com/gig/orion-go-sdk

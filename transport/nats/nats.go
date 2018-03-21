@@ -7,7 +7,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/betit/orion-go-sdk/transport"
+	"github.com/gig/orion-go-sdk/transport"
 
 	"github.com/nats-io/go-nats"
 )

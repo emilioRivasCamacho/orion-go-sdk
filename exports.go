@@ -1,9 +1,9 @@
 package orion
 
 import (
-	oerror "github.com/betit/orion-go-sdk/error"
-	"github.com/betit/orion-go-sdk/request"
-	"github.com/betit/orion-go-sdk/response"
+	oerror "github.com/gig/orion-go-sdk/error"
+	"github.com/gig/orion-go-sdk/request"
+	"github.com/gig/orion-go-sdk/response"
 )
 
 // Request from microservice

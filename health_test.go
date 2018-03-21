@@ -5,8 +5,8 @@ import (
 
 	"time"
 
-	oerror "github.com/betit/orion-go-sdk/error"
-	"github.com/betit/orion-go-sdk/health"
+	oerror "github.com/gig/orion-go-sdk/error"
+	"github.com/gig/orion-go-sdk/health"
 	"github.com/stretchr/testify/assert"
 )
 
