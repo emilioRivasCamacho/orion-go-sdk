@@ -26,10 +26,6 @@
   name = "github.com/nats-io/nats"
 
 [[constraint]]
-  name = "github.com/betit/msgpack"
-  branch = "master"
-
-[[constraint]]
   branch = "master"
   name = "github.com/satori/go.uuid"
 

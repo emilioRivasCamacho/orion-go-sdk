@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/betit/orion-go-sdk/interfaces"
+	"github.com/gig/orion-go-sdk/interfaces"
 	"github.com/stretchr/testify/assert"
 )
 
