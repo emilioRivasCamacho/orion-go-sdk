@@ -45,15 +45,20 @@ type Service struct {
 	HealthChecks          map[string]health.Dependency
 }
 
+func init() {
+	parseFlags()
+}
+
 func DefaultServiceOptions(opt *Options) {
-	opt.RegisterToWatchdog = *registerToWatchdogByDefault
-	opt.EnableStatusEndpoints = *registerToWatchdogByDefault
+	if registerToWatchdogByDefault != nil {
+		opt.RegisterToWatchdog = *registerToWatchdogByDefault
+		opt.EnableStatusEndpoints = *registerToWatchdogByDefault
+	}
 	opt.WatchdogServiceName = health.DefaultWatchdogServiceName()
 }
 
 // New orion service
 func New(name string, options ...Option) *Service {
-	ParseFlags()
 
 	opts := &Options{}
 
