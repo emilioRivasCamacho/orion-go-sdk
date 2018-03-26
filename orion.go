@@ -162,8 +162,12 @@ func (s *Service) handle(path string, logging bool, handler interface{}, factory
 	})
 }
 
+func UniqueName(name string, uniqueID string) string {
+	return name + "@" + uniqueID
+}
+
 func (s *Service) handleHealthCheck(healthCheckName string, handler interface{}, factory Factory) {
-	route := fmt.Sprintf("%s.%s", s.Name+s.ID, healthCheckName)
+	route := fmt.Sprintf("%s.%s", UniqueName(s.Name, s.ID), healthCheckName)
 
 	method := reflect.ValueOf(handler)
 	s.checkHandler(method)
@@ -173,7 +177,7 @@ func (s *Service) handleHealthCheck(healthCheckName string, handler interface{},
 		reqT = reqT.Elem()
 	}
 
-	s.Transport.Handle(route, s.Name+s.ID, func(data []byte) []byte {
+	s.Transport.Handle(route, UniqueName(s.Name, s.ID), func(data []byte) []byte {
 		req := factory()
 		req.SetError(s.Codec.Decode(data, req))
 

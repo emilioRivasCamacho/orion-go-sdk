@@ -39,7 +39,7 @@ type AmIUpResponse struct {
 	response.Response
 	Payload struct {
 		Status string `msgpack:"status"`
-	} `msgpack:"params"`
+	} `msgpack:"payload"`
 }
 
 type AmIUpRequest struct {
