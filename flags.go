@@ -7,7 +7,7 @@ import (
 
 // ParseFlags will parse the flags if they are not parsed yet
 // If they are already parsed the func will lookup for the "--verbose" and "--watchdog"
-func ParseFlags() {
+func parseFlags() {
 	if flag.Parsed() {
 		v := flag.Lookup("verbose")
 		if v != nil {
