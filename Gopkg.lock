@@ -50,7 +50,7 @@
 [[projects]]
   name = "github.com/gig/msgpack"
   packages = ["."]
-  revision = "40b1cac89761d843bbb96b8b27c746ba5937322a"
+  revision = "32466f4793118cf8fbd397b8a29d93876d9b5261"
   version = "v3.2.3"
 
 [[projects]]
@@ -169,12 +169,6 @@
   packages = ["assert"]
   revision = "b91bfb9ebec76498946beb6af7c0230c7cc7ba6c"
   version = "v1.2.0"
-
-[[projects]]
-  name = "github.com/vmihailenco/msgpack"
-  packages = ["codes"]
-  revision = "7eb5d7335e1aa947b407fdae890e6f55ff8debb6"
-  version = "v3.3.0"
 
 [[projects]]
   branch = "master"
