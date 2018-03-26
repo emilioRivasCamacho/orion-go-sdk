@@ -46,8 +46,10 @@ type Service struct {
 }
 
 func DefaultServiceOptions(opt *Options) {
-	opt.RegisterToWatchdog = *registerToWatchdogByDefault
-	opt.EnableStatusEndpoints = *registerToWatchdogByDefault
+	if registerToWatchdogByDefault != nil {
+		opt.RegisterToWatchdog = *registerToWatchdogByDefault
+		opt.EnableStatusEndpoints = *registerToWatchdogByDefault
+	}
 	opt.WatchdogServiceName = health.DefaultWatchdogServiceName()
 }
 
