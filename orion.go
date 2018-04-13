@@ -56,6 +56,7 @@ func DefaultServiceOptions(opt *Options) {
 // New orion service
 func New(name string, options ...Option) *Service {
 	parseFlags()
+	parseEnv()
 
 	opts := &Options{}
 

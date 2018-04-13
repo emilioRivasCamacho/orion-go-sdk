@@ -2,6 +2,7 @@ package orion
 
 import (
 	"flag"
+	"os"
 	"strconv"
 )
 
@@ -14,16 +15,15 @@ func parseFlags() {
 			b, _ := strconv.ParseBool(v.Value.String())
 			verbose = &b
 		}
-		w := flag.Lookup("watchdog")
-		if w != nil {
-			b, _ := strconv.ParseBool(w.Value.String())
-			registerToWatchdogByDefault = &b
-		}
 	} else {
-		bw := flag.Bool("watchdog", false, "Register to watchdog at init and periodically")
 		bv := flag.Bool("verbose", false, "Enable verbose (console) logging")
 		flag.Parse()
-		registerToWatchdogByDefault = bw
 		verbose = bv
 	}
+}
+
+func parseEnv() {
+	registerToWatchdogByDefault = new(bool)
+	wd := os.Getenv("WATCHDOG")
+	*registerToWatchdogByDefault = wd == "true" || wd == "1"
 }
