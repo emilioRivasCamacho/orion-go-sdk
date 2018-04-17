@@ -60,9 +60,9 @@ type AggregateRequest struct {
 }
 
 type DependencyCheckResult struct {
-	Description *string           `msgpack:"description"`
-	Result      HealthCheckResult `msgpack:"result"`
-	Details     *string           `msgpack:"details"`
+	Description *string           `msgpack:"description" json:"description"`
+	Result      HealthCheckResult `msgpack:"result" json:"result"`
+	Details     *string           `msgpack:"details" json:"details"`
 }
 
 func checkToStructure(checkName string, str string, err *oerror.Error) DependencyCheckResult {
