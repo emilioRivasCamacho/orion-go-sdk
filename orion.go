@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gig/orion-go-sdk/codec/msgpack"
+	"github.com/gig/orion-go-sdk/env"
 	oerror "github.com/gig/orion-go-sdk/error"
 	"github.com/gig/orion-go-sdk/health"
 	"github.com/gig/orion-go-sdk/interfaces"
@@ -22,8 +23,8 @@ import (
 )
 
 var (
-	registerToWatchdogByDefault *bool
-	verbose                     *bool
+	registerToWatchdogByDefault = false
+	verbose                     = false
 )
 
 // Factory func type - the one that creates the req obj
@@ -45,19 +46,27 @@ type Service struct {
 	HealthChecks          map[string]health.Dependency
 }
 
+func init() {
+	wd := env.Get("WATCHDOG", "false")
+	registerToWatchdogByDefault = wd == "true" || wd == "1"
+	vb := env.Get("VERBOSE", "false")
+	verbose = vb == "true" || vb == "1"
+}
+
+// DefaultServiceOptions setup
 func DefaultServiceOptions(opt *Options) {
-	if registerToWatchdogByDefault != nil {
-		opt.RegisterToWatchdog = *registerToWatchdogByDefault
-		opt.EnableStatusEndpoints = *registerToWatchdogByDefault
-	}
+	opt.RegisterToWatchdog = registerToWatchdogByDefault
+	opt.EnableStatusEndpoints = registerToWatchdogByDefault
 	opt.WatchdogServiceName = health.DefaultWatchdogServiceName()
+}
+
+// UniqueName for given name and unique id
+func UniqueName(name string, uniqueID string) string {
+	return name + "@" + uniqueID
 }
 
 // New orion service
 func New(name string, options ...Option) *Service {
-	parseFlags()
-	parseEnv()
-
 	opts := &Options{}
 
 	DefaultServiceOptions(opts)
@@ -78,7 +87,7 @@ func New(name string, options ...Option) *Service {
 	}
 
 	if opts.Logger == nil {
-		opts.Logger = logger.New(name, *verbose)
+		opts.Logger = logger.New(name, verbose)
 	}
 
 	uid, _ := uuid.NewV4()
@@ -163,10 +172,6 @@ func (s *Service) handle(path string, logging bool, handler interface{}, factory
 
 		return b
 	})
-}
-
-func UniqueName(name string, uniqueID string) string {
-	return name + "@" + uniqueID
 }
 
 func (s *Service) handleHealthCheck(healthCheckName string, handler interface{}, factory Factory) {
