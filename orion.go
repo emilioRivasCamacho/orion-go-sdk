@@ -273,7 +273,9 @@ func (s *Service) Call(req interfaces.Request, raw interface{}) {
 			CreateMessage("ORION_DECODE " + req.GetPath()).
 			SetLevel(logger.ERROR).
 			SetID(req.GetID()).
-			SetParams(err).
+			SetMap(map[string]interface{}{
+				"error": res.GetError(),
+			}).
 			SetLineOfCode(oerror.GenerateLOC(1)).
 			Send()
 
