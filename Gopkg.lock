@@ -20,16 +20,6 @@
   version = "v1.1.0"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/duythinht/gelf"
-  packages = [
-    "chunk",
-    "client",
-    "pool"
-  ]
-  revision = "5551c01bebbc6b2dba42c90e4a48a1e291dbc03e"
-
-[[projects]]
   name = "github.com/eapache/go-resiliency"
   packages = ["breaker"]
   revision = "6800482f2c813e689c88b7ed3282262385011890"
@@ -48,8 +38,21 @@
   version = "v1.1.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/gig/gelf"
+  packages = [
+    "chunk",
+    "client",
+    "pool"
+  ]
+  revision = "0a5317bf31bec05623e4f766cd2132c37a747fa7"
+
+[[projects]]
   name = "github.com/gig/msgpack"
-  packages = ["."]
+  packages = [
+    ".",
+    "codes"
+  ]
   revision = "32466f4793118cf8fbd397b8a29d93876d9b5261"
   version = "v3.2.3"
 
@@ -195,6 +198,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e87013eaa8dd6f79cda0d404734c63851da142b7e6f63caa8982f334bd125ca3"
+  inputs-digest = "7bbb6cad5c9c92db3ec80abfba2248a6730c492e6477aa34ab1a7102b8c8e708"
   solver-name = "gps-cdcl"
   solver-version = 1
