@@ -39,7 +39,7 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/duythinht/gelf"
+  name = "github.com/gig/gelf"
 
 [[constraint]]
   name = "github.com/op/go-logging"

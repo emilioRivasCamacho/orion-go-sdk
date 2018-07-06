@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/duythinht/gelf/client"
+	"github.com/gig/gelf/client"
 	"github.com/gig/orion-go-sdk/env"
 	oerror "github.com/gig/orion-go-sdk/error"
 	logging "github.com/op/go-logging"
