@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"runtime/debug"
 	"strings"
 
 	"time"
@@ -187,6 +188,19 @@ func (s *Service) handleHealthCheck(healthCheckName string, handler interface{},
 
 	s.Transport.Handle(route, UniqueName(s.Name, s.ID), func(data []byte) []byte {
 		req := factory()
+		defer func() {
+			if err := recover(); err != nil {
+				s.Logger.
+					CreateMessage("panic").
+					SetLevel(logger.ERROR).
+					SetID(req.GetID()).
+					SetParams(map[string]interface{}{
+						"error": err,
+						"stack": string(debug.Stack()),
+					}).
+					Send()
+			}
+		}()
 		req.SetError(s.Codec.Decode(data, req))
 
 		s.logRequest(req, true)
