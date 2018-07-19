@@ -199,6 +199,7 @@ func (s *Service) handleHealthCheck(healthCheckName string, handler interface{},
 						"stack": string(debug.Stack()),
 					}).
 					Send()
+				panic(err)
 			}
 		}()
 		req.SetError(s.Codec.Decode(data, req))
