@@ -16,7 +16,7 @@ $ dep ensure -add github.com/gig/orion-go-sdk
 
 ## Basic example
 
-### Note - You will need to have running all of the orion [dependencies](https://github.com/gig/orion/tree/dev#development)
+### Note - You will need to have running all of the orion [dependencies](https://github.com/gig/orion)
 
 Add the following into `foo.go` and run `go run foo.go --verbose`
 
@@ -180,9 +180,9 @@ $ go test -v .
 
 [MIT](https://github.com/gig/orion-go-sdk/blob/master/LICENSE)
 
-[travis-image]: https://travis-ci.org/gig/orion-go-sdk.svg?branch=master
-[travis-url]: https://travis-ci.org/gig/orion-go-sdk/
-[coveralls-image]: https://coveralls.io/repos/gig/orion-go-sdk/badge.svg
-[coveralls-url]: https://coveralls.io/r/gig/orion-go-sdk
+[travis-image]: https://travis-ci.org/GiG/orion-go-sdk.svg?branch=master
+[travis-url]: https://travis-ci.org/GiG/orion-go-sdk/
+[coveralls-image]: https://coveralls.io/repos/GiG/orion-go-sdk/badge.svg
+[coveralls-url]: https://coveralls.io/r/GiG/orion-go-sdk
 [godoc-image]: https://godoc.org/github.com/gig/orion-go-sdk?status.svg
 [godoc-url]: https://godoc.org/github.com/gig/orion-go-sdk

@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gig/gelf/client"
 	"github.com/gig/orion-go-sdk/env"
 	oerror "github.com/gig/orion-go-sdk/error"
-	"github.com/duythinht/gelf/client"
 	logging "github.com/op/go-logging"
 )
 
@@ -43,7 +43,6 @@ func init() {
 
 // New graylog logger
 func New(serviceName string, verbose bool) *Graylog {
-
 	port, err := strconv.Atoi(Port)
 	if err != nil {
 		log.Fatalf("Unable to parse graylog port %s", err)

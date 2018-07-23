@@ -3,6 +3,8 @@ package health
 import (
 	"time"
 
+	"os"
+
 	oerror "github.com/gig/orion-go-sdk/error"
 	"github.com/gig/orion-go-sdk/interfaces"
 	"github.com/gig/orion-go-sdk/request"
@@ -49,6 +51,7 @@ type WatchdogRegisterRequest struct {
 	Params struct {
 		ServiceID    string               `msgpack:"serviceId"`
 		Name         string               `msgpack:"name"`
+		Environment  map[string]string    `msgpack:"env"`
 		Dependencies []WatchdogDependency `msgpack:"dependencies"`
 	} `msgpack:"params"`
 }
@@ -58,6 +61,16 @@ type WatchdogRegisterResponse struct {
 	Payload struct {
 		Status HealthCheckResult `msgpack:"status"`
 	} `msgpack:"payload"`
+}
+
+func getEnvironment() map[string]string {
+	env := make(map[string]string)
+	HOST := os.Getenv("HOST")
+
+	if HOST != "" {
+		env["HOST"] = HOST
+	}
+	return env
 }
 
 func WatchdogRegisterLoop(
@@ -104,10 +117,12 @@ func WatchdogRegisterLoop(
 		Params: struct {
 			ServiceID    string               `msgpack:"serviceId"`
 			Name         string               `msgpack:"name"`
+			Environment  map[string]string    `msgpack:"env"`
 			Dependencies []WatchdogDependency `msgpack:"dependencies"`
 		}{
 			ServiceID:    uid,
 			Name:         name,
+			Environment:  getEnvironment(),
 			Dependencies: listOfDependencies,
 		},
 	}
