@@ -20,10 +20,13 @@ before_install:
   - chmod +x docker-compose
   - sudo mv docker-compose /usr/local/bin
   - docker-compose up -d
-  - wget -qO - http://packages.confluent.io/deb/3.3/archive.key | sudo apt-key add -
-  - sudo add-apt-repository "deb [arch=amd64] http://packages.confluent.io/deb/3.3 stable main"
-  - sudo apt-get update
-  - sudo apt-get install librdkafka1 librdkafka-dev
+  # the current package is not up to date so we will build from the source
+  # - wget -qO - http://packages.confluent.io/deb/3.3/archive.key | sudo apt-key add -
+  # - sudo add-apt-repository "deb [arch=amd64] http://packages.confluent.io/deb/3.3 stable main"
+  # - sudo apt-get update
+  # - sudo apt-get install librdkafka1 librdkafka-dev
+  - git clone https://github.com/edenhill/librdkafka.git
+  - cd librdkafka && ./configure && make && sudo make install
 
 script:
   - go test -v ./request
