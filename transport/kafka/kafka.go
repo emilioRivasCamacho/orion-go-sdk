@@ -1,14 +1,17 @@
 package kafka
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/gig/orion-go-sdk/env"
+	skafka "github.com/segmentio/kafka-go"
 )
 
 // Transport object
@@ -25,13 +28,15 @@ type Option func(Options)
 
 // Options for kafka transport
 type Options struct {
-	URL               string
-	ProducerPartition int32
-	ConsumerGroupID   string
-	SocketTimeout     string
-	AutoOffsetReset   string
-	Consumer          *kafka.Consumer
-	Producer          *kafka.Producer
+	URL                    string
+	TopicPartition         int
+	TopicReplicationFactor int
+	ProducerPartition      int32
+	ConsumerGroupID        string
+	SocketTimeout          string
+	AutoOffsetReset        string
+	Consumer               *kafka.Consumer
+	Producer               *kafka.Producer
 }
 
 type topics map[string]func([]byte)
@@ -41,17 +46,31 @@ func New(options ...Option) *Transport {
 	t := new(Transport)
 
 	t.topics = make(topics)
-	t.options.URL = env.Get("KAFKA_HOST", "localhost")
+	t.options.URL = env.Get("KAFKA_HOST", "localhost:9092")
 	t.options.ConsumerGroupID = env.Get("KAFKA_GROUP_ID", "default")
 	t.options.SocketTimeout = env.Get("KAFKA_SOCKET_TIMEOUT_MS", "1000")
 	t.options.AutoOffsetReset = env.Get("KAFKA_OFFSET_RESET", "earliest")
-	partition := env.Get("KAFKA_PRODUCER_PARTITION", "-1")
+	consumerPartition := env.Get("KAFKA_PRODUCER_PARTITION", "-1")
+	topicPartition := env.Get("KAFKA_TOPIC_PARTITION", "50")
+	topicReplicationFactor := env.Get("KAFKA_TOPIC_REPLICATION_FACTOR", "1")
 
-	i, err := strconv.ParseInt(partition, 10, 32)
+	i, err := strconv.ParseInt(consumerPartition, 10, 32)
 	if err != nil {
 		panic(err)
 	}
 	t.options.ProducerPartition = int32(i)
+
+	i, err = strconv.ParseInt(topicPartition, 10, 64)
+	if err != nil {
+		panic(err)
+	}
+	t.options.TopicPartition = int(i)
+
+	i, err = strconv.ParseInt(topicReplicationFactor, 10, 64)
+	if err != nil {
+		panic(err)
+	}
+	t.options.TopicReplicationFactor = int(i)
 
 	for _, setter := range options {
 		setter(t.options)
@@ -155,7 +174,13 @@ func (t *Transport) poll(callback func()) {
 	for k := range t.topics {
 		topics = append(topics, k)
 	}
-	err := t.options.Consumer.SubscribeTopics(topics, nil)
+
+	err := t.createTopics(topics)
+	if err != nil {
+		panic(err)
+	}
+
+	err = t.options.Consumer.SubscribeTopics(topics, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -172,6 +197,31 @@ func (t *Transport) poll(callback func()) {
 			break
 		}
 	}
+}
+
+func (t *Transport) createTopics(topics []string) error {
+	dialer := &skafka.Dialer{
+		Timeout:   10 * time.Second,
+		DualStack: true,
+	}
+
+	conn, err := dialer.DialContext(context.Background(), "tcp", t.options.URL)
+	if err != nil {
+		return err
+	}
+
+	defer conn.Close()
+
+	configs := make([]skafka.TopicConfig, 0, len(topics))
+	for _, topic := range topics {
+		configs = append(configs, skafka.TopicConfig{
+			Topic:             topic,
+			NumPartitions:     t.options.TopicPartition,
+			ReplicationFactor: t.options.TopicReplicationFactor,
+		})
+	}
+
+	return conn.CreateTopics(configs...)
 }
 
 func normalizeTopic(topic string) string {
