@@ -85,7 +85,7 @@ func New(options ...Option) *Transport {
 	return t
 }
 
-// Listen to nats
+// Listen to kafka
 func (t *Transport) Listen(callback func()) {
 	t.listening = true
 	go t.poll(callback)
