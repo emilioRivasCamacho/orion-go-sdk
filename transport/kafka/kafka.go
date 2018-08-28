@@ -88,6 +88,12 @@ func New(options ...Option) *Transport {
 	}
 
 	if t.options.Consumer == nil {
+		r := skafka.NewReader(skafka.ReaderConfig{
+			Brokers:   []string{t.options.URL},
+			Topic:     "topic-A",
+			Partition: 0,
+		})
+		r.SetOffset(42)
 		config := &kafka.ConfigMap{
 			"bootstrap.servers": t.options.URL,
 			"group.id":          t.options.ConsumerGroupID,

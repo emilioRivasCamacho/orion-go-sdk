@@ -20,8 +20,8 @@ before_install:
   - chmod +x docker-compose
   - sudo mv docker-compose /usr/local/bin
   - docker-compose up -d
-  - git clone https://github.com/edenhill/librdkafka.git
-  - cd librdkafka && ./configure && make && sudo make install && cd ..
+  - git clone §.git
+  - cd librdkafka && ./configure --prefix /usr && make && sudo make install && cd ..
 
 script:
   - go test -v ./request
