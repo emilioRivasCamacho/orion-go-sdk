@@ -2,6 +2,7 @@ package kafka
 
 import (
 	"context"
+	"log"
 	"os"
 	"os/signal"
 	"strconv"
@@ -34,7 +35,7 @@ type Options struct {
 	ProducerPartition      int32
 	ConsumerGroupID        string
 	SocketTimeout          string
-	AutoOffsetReset        string
+	Offset                 string
 	Consumer               *kafka.Consumer
 	Producer               *kafka.Producer
 }
@@ -49,12 +50,12 @@ func New(options ...Option) *Transport {
 	t.options.URL = env.Get("KAFKA_HOST", "localhost:9092")
 	t.options.ConsumerGroupID = env.Get("KAFKA_GROUP_ID", "default")
 	t.options.SocketTimeout = env.Get("KAFKA_SOCKET_TIMEOUT_MS", "1000")
-	t.options.AutoOffsetReset = env.Get("KAFKA_OFFSET_RESET", "earliest")
-	consumerPartition := env.Get("KAFKA_PRODUCER_PARTITION", "-1")
-	topicPartition := env.Get("KAFKA_TOPIC_PARTITION", "50")
+	t.options.Offset = env.Get("KAFKA_OFFSET", "earliest")
+	producerPartition := env.Get("KAFKA_PRODUCER_PARTITION", "-1")
+	topicPartition := env.Get("KAFKA_TOPIC_PARTITION", "5")
 	topicReplicationFactor := env.Get("KAFKA_TOPIC_REPLICATION_FACTOR", "1")
 
-	i, err := strconv.ParseInt(consumerPartition, 10, 32)
+	i, err := strconv.ParseInt(producerPartition, 10, 32)
 	if err != nil {
 		panic(err)
 	}
@@ -88,16 +89,10 @@ func New(options ...Option) *Transport {
 	}
 
 	if t.options.Consumer == nil {
-		r := skafka.NewReader(skafka.ReaderConfig{
-			Brokers:   []string{t.options.URL},
-			Topic:     "topic-A",
-			Partition: 0,
-		})
-		r.SetOffset(42)
 		config := &kafka.ConfigMap{
 			"bootstrap.servers": t.options.URL,
 			"group.id":          t.options.ConsumerGroupID,
-			"auto.offset.reset": t.options.AutoOffsetReset,
+			"auto.offset.reset": t.options.Offset,
 		}
 		p, err := kafka.NewConsumer(config)
 		if err != nil {
@@ -186,9 +181,11 @@ func (t *Transport) poll(callback func()) {
 		panic(err)
 	}
 
-	err = t.options.Consumer.SubscribeTopics(topics, nil)
-	if err != nil {
-		panic(err)
+	if len(topics) > 0 {
+		err = t.options.Consumer.SubscribeTopics(topics, nil)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	go callback()
@@ -199,7 +196,8 @@ func (t *Transport) poll(callback func()) {
 			hanlder := t.topics[*msg.TopicPartition.Topic]
 			hanlder(msg.Value)
 		} else {
-			t.closeHandler(err)
+			log.Printf("Error while reading %s", err.Error())
+			t.Close()
 			break
 		}
 	}
