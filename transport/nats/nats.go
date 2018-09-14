@@ -89,6 +89,15 @@ func (t *Transport) Subscribe(topic string, group string, handler func([]byte)) 
 	return err
 }
 
+// SubscribeForRawMsg for topic
+func (t *Transport) SubscribeForRawMsg(topic string, group string, handler func(interface{})) error {
+	_, err := t.conn.QueueSubscribe(topic, group, func(msg *nats.Msg) {
+		handler(msg)
+	})
+	t.handleUnexpectedClose(err)
+	return err
+}
+
 // Handle path
 func (t *Transport) Handle(path string, group string, handler func([]byte) []byte) error {
 	_, err := t.conn.QueueSubscribe(path, group, func(msg *nats.Msg) {

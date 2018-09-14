@@ -17,11 +17,12 @@ import (
 
 // Transport object
 type Transport struct {
-	listening    bool
-	options      Options
-	topics       topics
-	close        chan struct{}
-	closeHandler func(error)
+	listening      bool
+	options        Options
+	handlers       handlers
+	rawMsgHandlers rawMsgHandlers
+	close          chan struct{}
+	closeHandler   func(error)
 }
 
 // Option type
@@ -40,15 +41,17 @@ type Options struct {
 	Producer               *kafka.Producer
 }
 
-type topics map[string]func([]byte)
+type handlers map[string]func([]byte)
+type rawMsgHandlers map[string]func(interface{})
 
 // New returns client for Kafka messaging
 func New(options ...Option) *Transport {
 	t := new(Transport)
 
-	t.topics = make(topics)
+	t.handlers = make(handlers)
+	t.rawMsgHandlers = make(rawMsgHandlers)
 	t.options.URL = env.Get("KAFKA_HOST", "localhost:9092")
-	t.options.ConsumerGroupID = env.Get("KAFKA_GROUP_ID", "default")
+	t.options.ConsumerGroupID = env.Get("KAFKA_GROUP_ID", "default-go")
 	t.options.SocketTimeout = env.Get("KAFKA_SOCKET_TIMEOUT_MS", "1000")
 	t.options.Offset = env.Get("KAFKA_OFFSET", "earliest")
 	producerPartition := env.Get("KAFKA_PRODUCER_PARTITION", "-1")
@@ -90,9 +93,10 @@ func New(options ...Option) *Transport {
 
 	if t.options.Consumer == nil {
 		config := &kafka.ConfigMap{
-			"bootstrap.servers": t.options.URL,
-			"group.id":          t.options.ConsumerGroupID,
-			"auto.offset.reset": t.options.Offset,
+			"bootstrap.servers":  t.options.URL,
+			"group.id":           t.options.ConsumerGroupID,
+			"auto.offset.reset":  t.options.Offset,
+			"enable.auto.commit": false,
 		}
 		p, err := kafka.NewConsumer(config)
 		if err != nil {
@@ -135,9 +139,20 @@ func (t *Transport) Publish(topic string, data []byte) error {
 }
 
 // Subscribe for topic
+// Messages will be committed automatically
 func (t *Transport) Subscribe(topic, serviceName string, handler func([]byte)) error {
 	topic = normalizeTopic(topic)
-	t.topics[topic] = handler
+	t.checkTopic(topic)
+	t.handlers[topic] = handler
+	return nil
+}
+
+// SubscribeForRawMsg for topic
+// Messages have te be committed manually
+func (t *Transport) SubscribeForRawMsg(topic, serviceName string, handler func(interface{})) error {
+	topic = normalizeTopic(topic)
+	t.checkTopic(topic)
+	t.rawMsgHandlers[topic] = handler
 	return nil
 }
 
@@ -171,8 +186,11 @@ func (t *Transport) flush() {
 }
 
 func (t *Transport) poll(callback func()) {
-	topics := make([]string, 0, len(t.topics))
-	for k := range t.topics {
+	topics := make([]string, 0, len(t.handlers)+len(t.rawMsgHandlers))
+	for k := range t.handlers {
+		topics = append(topics, k)
+	}
+	for k := range t.rawMsgHandlers {
 		topics = append(topics, k)
 	}
 
@@ -193,8 +211,15 @@ func (t *Transport) poll(callback func()) {
 	for t.listening {
 		msg, err := t.options.Consumer.ReadMessage(-1)
 		if err == nil {
-			hanlder := t.topics[*msg.TopicPartition.Topic]
-			hanlder(msg.Value)
+			// t.options.Consumer.CommitMessage(msg)
+			topic := *msg.TopicPartition.Topic
+			if hanlder, ok := t.handlers[topic]; ok {
+				hanlder(msg.Value)
+			} else if hanlder, ok := t.rawMsgHandlers[topic]; ok {
+				hanlder(msg)
+			} else {
+				log.Printf("Something went wrong, unable to find handler for topic %s", topic)
+			}
 		} else {
 			log.Printf("Error while reading %s", err.Error())
 			t.Close()
@@ -226,6 +251,16 @@ func (t *Transport) createTopics(topics []string) error {
 	}
 
 	return conn.CreateTopics(configs...)
+}
+
+// checkTopic panics if the topic is already registered
+func (t Transport) checkTopic(topic string) {
+	if _, ok := t.handlers[topic]; ok {
+		log.Fatalf("Handler for topic %s is already registered", topic)
+	}
+	if _, ok := t.rawMsgHandlers[topic]; ok {
+		log.Fatalf("Handler for topic %s is already registered", topic)
+	}
 }
 
 func normalizeTopic(topic string) string {
