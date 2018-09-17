@@ -18,7 +18,7 @@ type Transport interface {
 	Listen(func())
 	Publish(string, []byte) error
 	Subscribe(string, string, func([]byte)) error
-	Handle(string, string, func([]byte) []byte) error
+	Handle(string, string, func([]byte, func([]byte))) error
 	Request(string, []byte, int) ([]byte, error)
 	Close()
 	OnClose(interface{})
