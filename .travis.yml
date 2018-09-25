@@ -20,5 +20,5 @@ before_install:
 script:
   - go test -v ./request
   - go test -v ./response
-  - go test --race -v -covermode=count -coverprofile=coverage.out
+  - go test --race -v -covermode=atomic -coverprofile=coverage.out
   - $GOPATH/bin/goveralls -coverprofile=coverage.out -service=travis-ci
