@@ -157,7 +157,7 @@ func (t *Transport) SubscribeForRawMsg(topic, serviceName string, handler func(i
 }
 
 // Handle path
-func (t *Transport) Handle(path string, group string, handler func([]byte) []byte) error {
+func (t *Transport) Handle(path string, group string, handler func([]byte, func([]byte))) error {
 	panic("kafka rpc is not implemented")
 }
 
@@ -210,8 +210,9 @@ func (t *Transport) poll(callback func()) {
 
 	for t.listening {
 		msg, err := t.options.Consumer.ReadMessage(-1)
-		if err == nil {
-			// t.options.Consumer.CommitMessage(msg)
+		// I had few cases locally where I got panic and it looks like the msg
+		// is nil although the error is nil too
+		if err == nil && msg != nil {
 			topic := *msg.TopicPartition.Topic
 			if hanlder, ok := t.handlers[topic]; ok {
 				hanlder(msg.Value)
@@ -221,7 +222,9 @@ func (t *Transport) poll(callback func()) {
 				log.Printf("Something went wrong, unable to find handler for topic %s", topic)
 			}
 		} else {
-			log.Printf("Error while reading %s", err.Error())
+			if err != nil {
+				log.Printf("Error while reading %s", err.Error())
+			}
 			t.Close()
 			break
 		}

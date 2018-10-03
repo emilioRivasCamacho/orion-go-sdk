@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"runtime/debug"
 	"strings"
 
 	"time"
@@ -23,8 +24,9 @@ import (
 )
 
 var (
-	registerToWatchdogByDefault = false
-	verbose                     = false
+	registerToWatchdogByDefault = env.Truthy("WATCHDOG")
+	verbose                     = env.Truthy("VERBOSE")
+	concurrentHandlers          = env.Truthy("CONCURRENT_HANDLERS")
 )
 
 // Factory func type - the one that creates the req obj
@@ -44,13 +46,6 @@ type Service struct {
 	WatchdogServiceName   string
 	closeWatchdogChannel  chan bool
 	HealthChecks          map[string]health.Dependency
-}
-
-func init() {
-	wd := env.Get("WATCHDOG", "false")
-	registerToWatchdogByDefault = wd == "true" || wd == "1"
-	vb := env.Get("VERBOSE", "false")
-	verbose = vb == "true" || vb == "1"
 }
 
 // DefaultServiceOptions setup
@@ -157,27 +152,29 @@ func (s *Service) handle(path string, logging bool, handler interface{}, factory
 	method := reflect.ValueOf(handler)
 	s.checkHandler(method)
 
-	reqT := method.Type().In(0)
-	if reqT.Kind() == reflect.Ptr {
-		reqT = reqT.Elem()
-	}
+	s.Transport.Handle(route, s.Name, func(data []byte, reply func([]byte)) {
+		runHandle := func() {
+			req := factory()
+			req.SetError(s.Codec.Decode(data, req))
 
-	s.Transport.Handle(route, s.Name, func(data []byte) []byte {
-		req := factory()
-		req.SetError(s.Codec.Decode(data, req))
+			s.logRequest(req, logging)
 
-		s.logRequest(req, logging)
+			res := method.Call([]reflect.Value{reflect.ValueOf(req)})[0].Interface()
 
-		res := method.Call([]reflect.Value{reflect.ValueOf(req)})[0].Interface()
+			s.logResponse(req, res, logging)
 
-		s.logResponse(req, res, logging)
+			b, err := s.Codec.Encode(res)
+			if err != nil {
+				log.Fatal(err)
+			}
 
-		b, err := s.Codec.Encode(res)
-		if err != nil {
-			log.Fatal(err)
+			reply(b)
 		}
-
-		return b
+		if concurrentHandlers {
+			go runHandle()
+			return
+		}
+		runHandle()
 	})
 }
 
@@ -187,13 +184,22 @@ func (s *Service) handleHealthCheck(healthCheckName string, handler interface{},
 	method := reflect.ValueOf(handler)
 	s.checkHandler(method)
 
-	reqT := method.Type().In(0)
-	if reqT.Kind() == reflect.Ptr {
-		reqT = reqT.Elem()
-	}
-
-	s.Transport.Handle(route, UniqueName(s.Name, s.ID), func(data []byte) []byte {
+	s.Transport.Handle(route, UniqueName(s.Name, s.ID), func(data []byte, reply func([]byte)) {
 		req := factory()
+		defer func() {
+			if err := recover(); err != nil {
+				s.Logger.
+					CreateMessage("panic").
+					SetLevel(logger.ERROR).
+					SetID(req.GetID()).
+					SetParams(map[string]interface{}{
+						"error": err,
+						"stack": string(debug.Stack()),
+					}).
+					Send()
+				panic(err)
+			}
+		}()
 		req.SetError(s.Codec.Decode(data, req))
 
 		s.logRequest(req, true)
@@ -207,7 +213,7 @@ func (s *Service) handleHealthCheck(healthCheckName string, handler interface{},
 			log.Fatal(err)
 		}
 
-		return b
+		reply(b)
 	})
 }
 
@@ -285,7 +291,9 @@ func (s *Service) Call(req interfaces.Request, raw interface{}) {
 			CreateMessage("ORION_DECODE " + req.GetPath()).
 			SetLevel(logger.ERROR).
 			SetID(req.GetID()).
-			SetParams(err).
+			SetMap(map[string]interface{}{
+				"error": res.GetError(),
+			}).
 			SetLineOfCode(oerror.GenerateLOC(1)).
 			Send()
 

@@ -123,6 +123,53 @@ func main() {
 
 You can find more examples in the test files.
 
+## Health checks
+
+Support for health checking is present if the services are running with the environment variable `WATCHDOG=true`. Also,
+a [watchdog](https://github.com/GiG/orion-watchdog) must be running in the same environment as the service.
+
+For instance, you could write an elasticsearch health check as:
+
+```go
+import (
+    "context"
+	"time"
+
+	el "gopkg.in/olivere/elastic.v5"
+	"github.com/gig/orion-go-sdk"
+	"github.com/gig/orion-go-sdk/health"
+)
+
+func HealthCheck(client * el.Client) (*elastic.ClusterHealthResponse, error) {
+	h := client.ClusterHealth()
+	return h.Do(context.Background())
+}
+
+func ElasticHealthFactoryChecker(service * orion.Service, client * el.Client)  {
+	service.RegisterHealthCheck(&health.Dependency{
+		Name: "elasticsearch",
+		Timeout: 30 * time.Second,
+		CheckIsWorking: func () (string, *orion.Error) {
+			res, err := HealthCheck(client)
+
+			if err != nil {
+				return "Health check went wrong: " + err.Error(), orion.ServiceError(string(health.HC_CRIT))
+			}
+
+			if res.Status == "yellow" {
+				return "Non-green status: " + res.Status, orion.ServiceError(string(health.HC_WARN))
+			}
+
+			if res.Status == "red" {
+				return "Non-green status: " + res.Status, orion.ServiceError(string(health.HC_CRIT))
+			}
+
+			return "", nil
+		},
+	})
+}
+```
+
 ## Tests
 
 ```bash

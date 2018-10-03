@@ -10,3 +10,9 @@ func Get(key, defaultValue string) string {
 	}
 	return value
 }
+
+// Truthy will evaluate the env. var. value to bool
+func Truthy(key string) bool {
+	val := os.Getenv(key)
+	return val == "true" || val == "1"
+}

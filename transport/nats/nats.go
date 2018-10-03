@@ -99,10 +99,11 @@ func (t *Transport) SubscribeForRawMsg(topic string, group string, handler func(
 }
 
 // Handle path
-func (t *Transport) Handle(path string, group string, handler func([]byte) []byte) error {
+func (t *Transport) Handle(path string, group string, handler func([]byte, func([]byte))) error {
 	_, err := t.conn.QueueSubscribe(path, group, func(msg *nats.Msg) {
-		res := handler(msg.Data)
-		t.conn.Publish(msg.Reply, res)
+		handler(msg.Data, func(res []byte) {
+			t.conn.Publish(msg.Reply, res)
+		})
 	})
 	t.handleUnexpectedClose(err)
 	return err
