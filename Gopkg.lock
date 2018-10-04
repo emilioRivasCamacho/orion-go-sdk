@@ -14,6 +14,12 @@
   version = "0.11.0"
 
 [[projects]]
+  name = "github.com/confluentinc/confluent-kafka-go"
+  packages = ["kafka"]
+  revision = "5e4d04e05fc319ce5996a867aafef29059f26862"
+  version = "v0.11.4"
+
+[[projects]]
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   revision = "346938d642f2ec3594ed81d874461961cd0faa76"
@@ -168,6 +174,12 @@
   revision = "36e9d2ebbde5e3f13ab2e25625fd453271d6522e"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/segmentio/kafka-go"
+  packages = ["."]
+  revision = "48c37f796910d8154479aaa04ade5843ae4f55d0"
+
+[[projects]]
   name = "github.com/stretchr/testify"
   packages = ["assert"]
   revision = "b91bfb9ebec76498946beb6af7c0230c7cc7ba6c"
@@ -198,6 +210,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7bbb6cad5c9c92db3ec80abfba2248a6730c492e6477aa34ab1a7102b8c8e708"
+  inputs-digest = "b1d7ade49522f03407a80656e18e97f858e1abb69b31c00bd1349452446fe97c"
   solver-name = "gps-cdcl"
   solver-version = 1

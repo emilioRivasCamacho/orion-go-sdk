@@ -119,6 +119,13 @@ func (s *Service) On(topic string, handler func([]byte)) {
 	s.Transport.Subscribe(subject, s.Name, handler)
 }
 
+// SubscribeForRawMsg is like service.On except that it receives the raw messages
+// specific for the transport protocol instead of the message payload
+func (s *Service) SubscribeForRawMsg(topic string, handler func(interface{})) {
+	subject := fmt.Sprintf("%s:%s", s.Name, topic)
+	s.Transport.SubscribeForRawMsg(subject, s.Name, handler)
+}
+
 // Decode bytes to passed interface
 func (s *Service) Decode(data []byte, to interface{}) error {
 	return s.Codec.Decode(data, &to)
