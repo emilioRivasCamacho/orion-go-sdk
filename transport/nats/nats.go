@@ -145,5 +145,7 @@ func (t *Transport) handleUnexpectedClose(err error) {
 }
 
 func (t *Transport) handleDisconnect(conn *nats.Conn) {
-	t.closeHandler(t.conn)
+	if t.closeHandler != nil {
+		t.closeHandler(t.conn)
+	}
 }
