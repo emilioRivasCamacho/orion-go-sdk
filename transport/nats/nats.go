@@ -54,6 +54,8 @@ func New(options ...transport.Option) *Transport {
 		log.Fatal(err)
 	}
 
+	t.conn.SetDisconnectHandler(t.handleDisconnect)
+
 	t.close = make(chan struct{})
 	return t
 }
@@ -140,4 +142,8 @@ func (t *Transport) handleUnexpectedClose(err error) {
 	if err == nats.ErrConnectionClosed {
 		t.closeHandler(t.conn)
 	}
+}
+
+func (t *Transport) handleDisconnect(conn *nats.Conn) {
+	t.closeHandler(t.conn)
 }
