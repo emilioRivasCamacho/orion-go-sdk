@@ -15,11 +15,12 @@ import (
 var (
 	// DefaultParams that will be send to graylog
 	DefaultParams = map[string]interface{}{}
-	// Host for graylog
-	Host = ""
-	// Port for graylog
-	Port = ""
-	log  *logging.Logger
+	// GraylogHost env var
+	GraylogHost = ""
+	// GraylogPort env var
+	GraylogPort = ""
+	host        = env.Get("HOST", "")
+	log         *logging.Logger
 )
 
 // Graylog logger
@@ -43,13 +44,13 @@ func init() {
 
 // New graylog logger
 func New(serviceName string, verbose bool) *Graylog {
-	port, err := strconv.Atoi(Port)
+	port, err := strconv.Atoi(GraylogPort)
 	if err != nil {
 		log.Fatalf("Unable to parse graylog port %s", err)
 	}
 
 	c := client.New(client.Config{
-		GraylogHost: Host,
+		GraylogHost: GraylogHost,
 		GraylogPort: port,
 	})
 
@@ -66,6 +67,7 @@ func (g *Graylog) CreateMessage(message string) *Message {
 		logger: g,
 		args:   map[string]interface{}{},
 	}
+	m.args["vm_host"] = host
 	m.args["host"] = g.service
 	m.args["message"] = message
 	m.args["timestamp"] = time.Now().Unix()
@@ -170,11 +172,11 @@ func (m *Message) log(data string) {
 }
 
 func setVariables() {
-	if Host == "" {
-		Host = env.Get("ORION_LOGGER_HOST", "127.0.0.1")
+	if GraylogHost == "" {
+		GraylogHost = env.Get("ORION_LOGGER_HOST", "127.0.0.1")
 	}
-	if Port == "" {
-		Port = env.Get("ORION_LOGGER_PORT", "12201")
+	if GraylogPort == "" {
+		GraylogPort = env.Get("ORION_LOGGER_PORT", "12201")
 	}
 }
 
