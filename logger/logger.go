@@ -68,7 +68,7 @@ func (g *Graylog) CreateMessage(message string) *Message {
 	}
 	m.args["host"] = g.service
 	m.args["message"] = message
-	m.args["timestamp"] = time.Now().Unix()
+	m.args["timestamp"] = float64(time.Now().UnixNano()) / float64(time.Second)
 
 	return m
 }
