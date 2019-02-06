@@ -13,6 +13,8 @@ import (
 )
 
 var (
+	// to enable tracing, set this to true using TRACER_ENABLED env. var.
+	enabled = false
 	// SameSpan can be set to true for RPC style spans (Zipkin V1) vs Node style (OpenTracing)
 	SameSpan = true
 
@@ -49,46 +51,56 @@ func init() {
 // New zipkin tracer
 func New(service string) Tracer {
 
-	c, err := zipkin.NewHTTPCollector(Endpoint)
-	if err != nil {
-		fmt.Printf("unable to create Zipkin HTTP collector: %+v\n", err)
-		os.Exit(1)
+	if enabled {
+
+		c, err := zipkin.NewHTTPCollector(Endpoint)
+		if err != nil {
+			fmt.Printf("unable to create Zipkin HTTP collector: %+v\n", err)
+			os.Exit(1)
+		}
+		collector = c
+
+		recorder := zipkin.NewRecorder(collector, Debug, HostAddr, service)
+
+		t, err := zipkin.NewTracer(
+			recorder,
+			zipkin.ClientServerSameSpan(SameSpan),
+			zipkin.TraceID128Bit(TraceID128Bit),
+		)
+		if err != nil {
+			fmt.Printf("unable to create Zipkin tracer: %+v\n", err)
+			os.Exit(1)
+		}
+
+		tracer = t
+
+		opentracing.InitGlobalTracer(tracer)
+
 	}
-	collector = c
 
-	recorder := zipkin.NewRecorder(collector, Debug, HostAddr, service)
-
-	t, err := zipkin.NewTracer(
-		recorder,
-		zipkin.ClientServerSameSpan(SameSpan),
-		zipkin.TraceID128Bit(TraceID128Bit),
-	)
-	if err != nil {
-		fmt.Printf("unable to create Zipkin tracer: %+v\n", err)
-		os.Exit(1)
-	}
-
-	tracer = t
-
-	opentracing.InitGlobalTracer(tracer)
 	return Tracer{}
 }
 
 // Trace request
 func (t Tracer) Trace(req interfaces.Request) Close {
-	ctx, _ := tracer.Extract(opentracing.TextMap, opentracing.HTTPHeadersCarrier(req.GetTracerData()))
-	span := tracer.StartSpan(req.GetPath(), opentracing.ChildOf(ctx))
-	ext.SpanKindRPCClient.Set(span)
+	var span opentracing.Span
+	if enabled {
+		ctx, _ := tracer.Extract(opentracing.TextMap, opentracing.HTTPHeadersCarrier(req.GetTracerData()))
+		span = tracer.StartSpan(req.GetPath(), opentracing.ChildOf(ctx))
+		ext.SpanKindRPCClient.Set(span)
 
-	headers := opentracing.HTTPHeadersCarrier(map[string][]string{})
+		headers := opentracing.HTTPHeadersCarrier(map[string][]string{})
 
-	tracer.Inject(span.Context(), opentracing.TextMap, headers)
+		tracer.Inject(span.Context(), opentracing.TextMap, headers)
 
-	req.SetTracerData(headers)
-	req.SetID(headers["X-B3-Traceid"][0])
+		req.SetTracerData(headers)
+		req.SetID(headers["X-B3-Traceid"][0])
+	}
 
 	return func() {
-		span.Finish()
+		if enabled {
+			span.Finish()
+		}
 	}
 }
 
@@ -98,5 +110,9 @@ func setVariables() {
 	}
 	if HostAddr == "" {
 		HostAddr = env.Get("ORION_TRACER_HOST_ADDR", "0.0.0.0:0")
+	}
+	e := env.Get("TRACER_ENABLED", "")
+	if e == "1" || e == "true" {
+		enabled = true
 	}
 }

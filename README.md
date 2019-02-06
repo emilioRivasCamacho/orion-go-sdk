@@ -170,6 +170,10 @@ func ElasticHealthFactoryChecker(service * orion.Service, client * el.Client)  {
 }
 ```
 
+## Tracer
+
+The zipkin tracer is disabled by default and you can enable it using the `TRACER_ENABLED` env. variable with possible values of `1` or `true`
+
 ## Tests
 
 ```bash
