@@ -53,7 +53,7 @@ func New(options ...Option) *Transport {
 	t.options.URL = env.Get("KAFKA_HOST", "localhost:9092")
 	t.options.ConsumerGroupID = env.Get("KAFKA_GROUP_ID", "default-go")
 	t.options.SocketTimeout = env.Get("KAFKA_SOCKET_TIMEOUT_MS", "1000")
-	t.options.Offset = env.Get("KAFKA_OFFSET", "earliest")
+	t.options.Offset = env.Get("KAFKA_OFFSET", "latest")
 	producerPartition := env.Get("KAFKA_PRODUCER_PARTITION", "-1")
 	topicPartition := env.Get("KAFKA_TOPIC_PARTITION", "5")
 	topicReplicationFactor := env.Get("KAFKA_TOPIC_REPLICATION_FACTOR", "1")
@@ -216,6 +216,7 @@ func (t *Transport) poll(callback func()) {
 			topic := *msg.TopicPartition.Topic
 			if hanlder, ok := t.handlers[topic]; ok {
 				hanlder(msg.Value)
+				t.options.Consumer.CommitMessage(msg)
 			} else if hanlder, ok := t.rawMsgHandlers[topic]; ok {
 				hanlder(msg)
 			} else {
