@@ -158,13 +158,13 @@ func (t *Transport) SubscribeForRawMsg(topic, serviceName string, handler func(i
 
 // Handle path
 func (t *Transport) Handle(path string, group string, handler func([]byte, func([]byte))) error {
-	log.Println("kafka rpc is not implemented")
+	println("kafka rpc is not implemented")
 	return nil
 }
 
 // Request path
 func (t *Transport) Request(path string, payload []byte, timeOut int) ([]byte, error) {
-	log.Println("kafka rpc is not implemented")
+	println("kafka rpc is not implemented")
 	return nil, nil
 }
 
