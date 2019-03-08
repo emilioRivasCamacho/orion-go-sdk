@@ -5,6 +5,7 @@ import (
 
 	"github.com/gig/orion-go-sdk/codec/msgpack"
 	"github.com/gig/orion-go-sdk/interfaces"
+	uuid "github.com/satori/go.uuid"
 )
 
 // Meta type for req
@@ -30,8 +31,11 @@ var codec = msgpack.New()
 
 // New request
 func New() *Request {
+	uid, _ := uuid.NewV4()
 	return &Request{
-		Meta:       map[string]string{},
+		Meta: map[string]string{
+			"x-trace-id": uid.String(), // will be overriden by tracer is tracing is enabled
+		},
 		TracerData: map[string][]string{},
 	}
 }
