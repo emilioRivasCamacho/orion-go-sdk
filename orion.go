@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"runtime"
 	"runtime/debug"
 	"strings"
-
 	"time"
 
+	"github.com/Jeffail/tunny"
 	"github.com/gig/orion-go-sdk/codec/msgpack"
 	"github.com/gig/orion-go-sdk/env"
 	oerror "github.com/gig/orion-go-sdk/error"
@@ -152,8 +153,17 @@ func (s *Service) handle(path string, logging bool, handler interface{}, factory
 	method := reflect.ValueOf(handler)
 	s.checkHandler(method)
 
+	numCPUs := runtime.NumCPU()
+
+	pool := tunny.NewFunc(numCPUs, func(fn interface{}) interface{} {
+		toCall := fn.(func())
+		toCall()
+		return nil
+	})
+
 	s.Transport.Handle(route, s.Name, func(data []byte, reply func([]byte)) {
-		runHandle := func() {
+
+		toProcess := func() {
 			req := factory()
 			req.SetError(s.Codec.Decode(data, req))
 
@@ -170,11 +180,8 @@ func (s *Service) handle(path string, logging bool, handler interface{}, factory
 
 			reply(b)
 		}
-		if concurrentHandlers {
-			go runHandle()
-			return
-		}
-		runHandle()
+
+		pool.Process(toProcess)
 	})
 }
 
