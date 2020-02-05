@@ -52,7 +52,3 @@
 [[constraint]]
   branch = "master"
   name = "github.com/segmentio/kafka-go"
-
-[[constraint]]
-  name = "github.com/Jeffail/tunny"
-  version = "0.1.2"
