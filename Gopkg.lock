@@ -2,14 +2,6 @@
 
 
 [[projects]]
-  digest = "1:0f0214f8fd49f4ec6bc31db1925fab0459121184a50daf774c42fa161a27a23a"
-  name = "github.com/Jeffail/tunny"
-  packages = ["."]
-  pruneopts = ""
-  revision = "4921fff29480bad359ad2fb3271fb461c8ffe1fc"
-  version = "0.1.2"
-
-[[projects]]
   digest = "1:355a000a06dc127c555e408c3778f9968fe4c1680ea6a1c13ba5612274b78551"
   name = "github.com/Shopify/sarama"
   packages = ["."]
@@ -192,6 +184,14 @@
   revision = "32e345db3b0ba2ad0ffb5f03cb448e5a39da0096"
 
 [[projects]]
+  digest = "1:ebefa6494fc7582b57a3ddbd8849bb8ddc87a6560f8de3d4098543898bdef087"
+  name = "github.com/panjf2000/ants"
+  packages = ["."]
+  pruneopts = ""
+  revision = "e73db1d7d226408976ed89d514588a5fee7e87fa"
+  version = "v2.1.0"
+
+[[projects]]
   digest = "1:52b8f1dc01c8a930900aa94e227b0c4c36e7102a5b124687ff1f88a221590234"
   name = "github.com/pierrec/lz4"
   packages = ["."]
@@ -277,7 +277,6 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/Jeffail/tunny",
     "github.com/confluentinc/confluent-kafka-go/kafka",
     "github.com/gig/gelf/client",
     "github.com/gig/msgpack",
@@ -286,6 +285,7 @@
     "github.com/opentracing/opentracing-go",
     "github.com/opentracing/opentracing-go/ext",
     "github.com/openzipkin/zipkin-go-opentracing",
+    "github.com/panjf2000/ants",
     "github.com/satori/go.uuid",
     "github.com/segmentio/kafka-go",
     "github.com/stretchr/testify/assert",
