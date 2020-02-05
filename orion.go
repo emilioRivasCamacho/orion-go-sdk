@@ -8,10 +8,10 @@ import (
 	"reflect"
 	"runtime"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/Jeffail/tunny"
 	"github.com/gig/orion-go-sdk/codec/msgpack"
 	"github.com/gig/orion-go-sdk/env"
 	oerror "github.com/gig/orion-go-sdk/error"
@@ -21,13 +21,14 @@ import (
 	"github.com/gig/orion-go-sdk/response"
 	"github.com/gig/orion-go-sdk/tracer"
 	"github.com/gig/orion-go-sdk/transport/nats"
+	"github.com/panjf2000/ants"
 	uuid "github.com/satori/go.uuid"
 )
 
 var (
 	registerToWatchdogByDefault = env.Truthy("WATCHDOG")
 	verbose                     = env.Truthy("VERBOSE")
-	concurrentHandlers          = env.Truthy("CONCURRENT_HANDLERS")
+	concurrentHandlers          = env.Get("CONCURRENT_HANDLERS", strconv.Itoa(runtime.NumCPU()))
 )
 
 // Factory func type - the one that creates the req obj
@@ -153,13 +154,18 @@ func (s *Service) handle(path string, logging bool, handler interface{}, factory
 	method := reflect.ValueOf(handler)
 	s.checkHandler(method)
 
-	numCPUs := runtime.NumCPU()
+	num, err := strconv.Atoi(concurrentHandlers)
+	if err != nil {
+		panic(err)
+	}
 
-	pool := tunny.NewFunc(numCPUs, func(fn interface{}) interface{} {
+	pool, err := ants.NewPoolWithFunc(num, func(fn interface{}) {
 		toCall := fn.(func())
 		toCall()
-		return nil
 	})
+	if err != nil {
+		panic(err)
+	}
 
 	s.Transport.Handle(route, s.Name, func(data []byte, reply func([]byte)) {
 
@@ -181,7 +187,7 @@ func (s *Service) handle(path string, logging bool, handler interface{}, factory
 			reply(b)
 		}
 
-		pool.Process(toProcess)
+		pool.Invoke(toProcess)
 	})
 }
 
