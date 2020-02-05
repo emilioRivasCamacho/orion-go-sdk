@@ -17,7 +17,7 @@ import (
 func init() {
 	disableHealthChecks := env.Truthy("DISABLE_HEALTH_CHECK")
 
-	if disableHealthChecks {
+	if !disableHealthChecks {
 		r := chi.NewRouter()
 		InstallHealthcheck(r, "/healthcheck")
 
@@ -29,15 +29,15 @@ func init() {
 				}
 			}()
 			// TODO: Handle this error
-			_ = http.ListenAndServe(":8080", r)
+			_ = http.ListenAndServe(":9001", r)
 		}()
 	}
 }
 
 func InstallHealthcheck(router chi.Router, endpointPath string) {
-	summary := GetSummaryOfHealthChecks()
-
 	router.Get(endpointPath, func(w http.ResponseWriter, r *http.Request) {
+		summary := GetSummaryOfHealthChecks()
+
 		if len(summary) == 0 {
 			w.WriteHeader(200)
 			// TODO: Handle this error

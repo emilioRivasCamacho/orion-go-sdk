@@ -88,9 +88,6 @@ func New(name string, options ...Option) *Service {
 		Logger:       opts.Logger,
 		HealthChecks: make([]health.Dependency, 0),
 	}
-
-	s.loopOverHealthChecks()
-
 	return s
 }
 
@@ -241,6 +238,7 @@ func (s *Service) loopOverHealthChecks() {
 
 // Listen to the transport protocol
 func (s *Service) Listen(callback func()) {
+	s.loopOverHealthChecks()
 	s.Transport.Listen(callback)
 }
 
