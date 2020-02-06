@@ -2,13 +2,6 @@ package health
 
 import (
 	"time"
-
-	"os"
-
-	oerror "github.com/gig/orion-go-sdk/error"
-	"github.com/gig/orion-go-sdk/interfaces"
-	"github.com/gig/orion-go-sdk/request"
-	"github.com/gig/orion-go-sdk/response"
 )
 
 const (
@@ -16,12 +9,36 @@ const (
 	defaultHealthCheckLoopPeriod = 30 * time.Second
 )
 
-// LoopOverHealthChecks loops FOREVER over the HealthChecks that are given. 
-func LoopOverHealthChecks(dependencies []Dependency) {
-	for {
-		ResetSummaryOfHealthChecks()
-		// TODO: check dependencies
-		// TODO: AppendHealthCheckError(error)
-		time.Sleep(defaultHealthCheckLoopPeriod)
+// LoopOverHealthChecks loops FOREVER over the HealthChecks that are given.
+func LoopOverHealthChecks(dependencies []Dependency, close chan struct{}) {
+	run := true
+	delay := make(chan struct{}, 1)
+	delay <- struct{}{}
+
+	// This go function produces an event to the channel for the loop.
+	go func() {
+		for run {
+			time.Sleep(defaultHealthCheckLoopPeriod)
+			delay <- struct{}{}
+		}
+	}()
+
+	for run {
+		select {
+		case <-close: // We want to end up the loop
+			run = false
+		case <-delay: // Every loop period we run the health checks.
+			ResetSummaryOfHealthChecks()
+			for _, dep := range dependencies {
+				res, err := dep.CheckIsWorking()
+				if res == HC_CRIT {
+					AppendHealthCheckError(err)
+				} else if res == HC_WARN {
+					// TODO: Log there's a warning with a health check
+				}
+			}
+
+		}
 	}
+
 }

@@ -64,7 +64,7 @@
   packages = [
     "chunk",
     "client",
-    "pool"
+    "pool",
   ]
   pruneopts = ""
   revision = "0a5317bf31bec05623e4f766cd2132c37a747fa7"
@@ -74,7 +74,7 @@
   name = "github.com/gig/msgpack"
   packages = [
     ".",
-    "codes"
+    "codes",
   ]
   pruneopts = ""
   revision = "32466f4793118cf8fbd397b8a29d93876d9b5261"
@@ -134,7 +134,7 @@
   packages = [
     ".",
     "encoders/builtin",
-    "util"
+    "util",
   ]
   pruneopts = ""
   revision = "d66cb54e6b7bdd93f0b28afc8450d84c780dfb68"
@@ -171,7 +171,7 @@
   packages = [
     ".",
     "ext",
-    "log"
+    "log",
   ]
   pruneopts = ""
   revision = "1361b9cd60be79c4c3a7fa9841b3c132e40066a7"
@@ -186,7 +186,7 @@
     "thrift/gen-go/scribe",
     "thrift/gen-go/zipkincore",
     "types",
-    "wire"
+    "wire",
   ]
   pruneopts = ""
   revision = "32e345db3b0ba2ad0ffb5f03cb448e5a39da0096"
@@ -267,7 +267,7 @@
     "internal/datastore",
     "internal/log",
     "internal/modules",
-    "internal/remote_api"
+    "internal/remote_api",
   ]
   pruneopts = ""
   revision = "150dc57a1b433e64154302bdc40b6bb8aefa313a"
@@ -288,7 +288,7 @@
     "github.com/openzipkin/zipkin-go-opentracing",
     "github.com/satori/go.uuid",
     "github.com/segmentio/kafka-go",
-    "github.com/stretchr/testify/assert"
+    "github.com/stretchr/testify/assert",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -6,10 +6,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
-	"runtime/debug"
 	"strings"
-
-	"time"
 
 	"github.com/gig/orion-go-sdk/codec/msgpack"
 	"github.com/gig/orion-go-sdk/env"
@@ -33,14 +30,15 @@ type Factory = func() interfaces.Request
 
 // Service for orion
 type Service struct {
-	ID           string
-	Name         string
-	Timeout      int
-	Codec        interfaces.Codec
-	Transport    interfaces.Transport
-	Tracer       interfaces.Tracer
-	Logger       interfaces.Logger
-	HealthChecks []health.Dependency
+	ID              string
+	Name            string
+	Timeout         int
+	Codec           interfaces.Codec
+	Transport       interfaces.Transport
+	Tracer          interfaces.Tracer
+	Logger          interfaces.Logger
+	HealthChecks    []health.Dependency
+	StopHealthCheck chan struct{}
 }
 
 // DefaultServiceOptions setup
@@ -88,11 +86,8 @@ func New(name string, options ...Option) *Service {
 		Transport:    opts.Transport,
 		Tracer:       opts.Tracer,
 		Logger:       opts.Logger,
-		HealthChecks: make([]health.Dependency),
+		HealthChecks: make([]health.Dependency, 0),
 	}
-
-	s.loopOverHealthChecks()
-
 	return s
 }
 
@@ -176,44 +171,11 @@ func (s *Service) RegisterHealthCheck(check *health.Dependency) {
 
 	// And we change the original check function with another one which times out if
 	// the check delays too much
-	check.CheckIsWorking = func() (string, *oerror.Error) { return s.checkHealthOrTimeout(check.Name, check.Timeout, realCheck) }
+	check.CheckIsWorking = health.WrapHealthCheckWithATimeout(check.Name, check.Timeout, realCheck)
 	s.HealthChecks = append(s.HealthChecks, *check)
 
 	// Then we restore the original object
 	check.CheckIsWorking = realCheck
-}
-
-func (s *Service) checkHealthOrTimeout(name string, timeout time.Duration, check func() (string, *oerror.Error)) (string, *oerror.Error) {
-
-	resultChannel := make(chan struct {
-		str  string
-		oerr *oerror.Error
-	})
-	timeoutChannel := make(chan bool)
-
-	go func() {
-		str, oerr := check()
-		resultChannel <- struct {
-			str  string
-			oerr *oerror.Error
-		}{
-			str:  str,
-			oerr: oerr,
-		}
-	}()
-
-	go func() {
-		time.Sleep(timeout)
-		timeoutChannel <- true
-	}()
-
-	select {
-	case res := <-resultChannel:
-		return res.str, res.oerr
-	case <-timeoutChannel:
-		oerr := oerror.New(string(health.HC_CRIT))
-		return "The health check " + name + " did timeout for " + string(timeout/time.Second) + " seconds", oerr
-	}
 }
 
 // Call orion service
@@ -262,7 +224,7 @@ type responseWithAnyPayload struct {
 }
 
 func (s *Service) loopOverHealthChecks() {
-	// TODO: Call to a loop to health checks.
+	s.StopHealthCheck = make(chan struct{})
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
@@ -270,25 +232,32 @@ func (s *Service) loopOverHealthChecks() {
 				fmt.Println(r)
 			}
 		}()
-		health.LoopOverHealthChecks(s.HealthChecks)
+		health.LoopOverHealthChecks(s.HealthChecks, s.StopHealthCheck)
 	}()
 }
 
 // Listen to the transport protocol
 func (s *Service) Listen(callback func()) {
+	s.loopOverHealthChecks()
 	s.Transport.Listen(callback)
 }
 
 // Close the transport protocol
 func (s *Service) Close() {
-	// TODO: kill the health check loop.
+	if s.StopHealthCheck != nil {
+		s.StopHealthCheck <- struct{}{}
+		s.StopHealthCheck = nil
+	}
 	s.Transport.Close()
 }
 
 // OnClose adds a handler to a transport connection closed event
 func (s *Service) OnClose(handler func()) {
 	s.Transport.OnClose(func(*nats.Conn) {
-		// TODO: kill the health check loop.
+		if s.StopHealthCheck != nil {
+			s.StopHealthCheck <- struct{}{}
+			s.StopHealthCheck = nil
+		}
 		handler()
 	})
 }
