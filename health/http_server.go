@@ -28,7 +28,7 @@ func init() {
 					fmt.Println(r)
 				}
 			}()
-			err = http.ListenAndServe(":9001", r)
+			err := http.ListenAndServe(":9001", r)
 			panic(err)
 		}()
 	}
