@@ -28,8 +28,8 @@ func init() {
 					fmt.Println(r)
 				}
 			}()
-			// TODO: Handle this error
-			_ = http.ListenAndServe(":9001", r)
+			err = http.ListenAndServe(":9001", r)
+			panic(err)
 		}()
 	}
 }

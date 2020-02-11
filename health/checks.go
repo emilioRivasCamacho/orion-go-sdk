@@ -2,6 +2,7 @@ package health
 
 import (
 	"errors"
+	"sync"
 	"time"
 )
 
@@ -21,21 +22,25 @@ type Dependency struct {
 
 var (
 	// The latest summary of errors happening when running health checks.
-	summary []error
+	summary      []error
+	summaryMutex sync.RWMutex
 )
 
 func GetSummaryOfHealthChecks() []error {
-	// TODO: mutex for read
+	summaryMutex.RLock()
+	defer summaryMutex.RUnlock()
 	return summary
 }
 
 func ResetSummaryOfHealthChecks() {
-	// TODO: mutex for writing
+	summaryMutex.Lock()
+	defer summaryMutex.Unlock()
 	summary = []error{}
 }
 
 func AppendHealthCheckError(err error) {
-	// TODO: mutex for writing
+	summaryMutex.Lock()
+	defer summaryMutex.Unlock()
 	summary = append(summary, err)
 }
 
