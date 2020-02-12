@@ -17,7 +17,6 @@ import (
 	"github.com/gig/orion-go-sdk/interfaces"
 	"github.com/gig/orion-go-sdk/logger"
 	"github.com/gig/orion-go-sdk/response"
-	"github.com/gig/orion-go-sdk/tracer"
 	"github.com/gig/orion-go-sdk/transport/nats"
 	uuid "github.com/satori/go.uuid"
 )
@@ -37,7 +36,6 @@ type Service struct {
 	Timeout             int
 	Codec               interfaces.Codec
 	Transport           interfaces.Transport
-	Tracer              interfaces.Tracer
 	Logger              interfaces.Logger
 	HealthChecks        []health.Dependency
 	StopHealthCheck     chan struct{}
@@ -75,10 +73,6 @@ func New(name string, options ...Option) *Service {
 	// as for now, the codec will always be msgpack
 	opts.Codec = msgpack.New()
 
-	if opts.Tracer == nil {
-		opts.Tracer = tracer.New(name)
-	}
-
 	if opts.Logger == nil {
 		opts.Logger = logger.New(name, verbose)
 	}
@@ -91,7 +85,6 @@ func New(name string, options ...Option) *Service {
 		Timeout:             200,
 		Codec:               opts.Codec,
 		Transport:           opts.Transport,
-		Tracer:              opts.Tracer,
 		Logger:              opts.Logger,
 		HealthChecks:        make([]health.Dependency, 0),
 		HTTPPort:            opts.HTTPPort,
@@ -192,8 +185,6 @@ func (s *Service) Call(req interfaces.Request, raw interface{}) {
 	res, ok := raw.(interfaces.Response)
 	checkResponseCast(ok)
 
-	closeTracer := s.Tracer.Trace(req)
-
 	encoded, err := s.Codec.Encode(req)
 	if err != nil {
 		res.SetError(oerror.New("ORION_ENCODE").SetMessage(err.Error()).SetLineOfCode(oerror.GenerateLOC(1)))
@@ -223,8 +214,6 @@ func (s *Service) Call(req interfaces.Request, raw interface{}) {
 
 		return
 	}
-
-	closeTracer()
 }
 
 type responseWithAnyPayload struct {

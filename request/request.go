@@ -11,20 +11,16 @@ import (
 // Meta type for req
 type Meta map[string]string
 
-// TracerData type for req
-type TracerData map[string][]string
-
 // Request object
 // swagger:ignore
 type Request struct {
 	// Empty json tags because we need to omit those fields when generating the docs
 	// and we do not plan to support json
-	TracerData TracerData `json:"-" msgpack:"tracerData"`
-	Path       string     `json:"-" msgpack:"path"`
-	Params     []byte     `json:"-" msgpack:"params"`
-	Meta       Meta       `json:"-" msgpack:"meta"`
-	Timeout    *int       `json:"-" msgpack:"timeout"`
-	Error      error      `json:"-" msgpack:",omitempty"`
+	Path    string `json:"-" msgpack:"path"`
+	Params  []byte `json:"-" msgpack:"params"`
+	Meta    Meta   `json:"-" msgpack:"meta"`
+	Timeout *int   `json:"-" msgpack:"timeout"`
+	Error   error  `json:"-" msgpack:",omitempty"`
 }
 
 var codec = msgpack.New()
@@ -34,17 +30,15 @@ func New() *Request {
 	uid, _ := uuid.NewV4()
 	return &Request{
 		Meta: map[string]string{
-			"x-trace-id": uid.String(), // will be overriden by tracer is tracing is enabled
+			"x-trace-id": uid.String(),
 		},
-		TracerData: map[string][]string{},
 	}
 }
 
-// Merge the meta and tracer data
+// Merge the meta data
 // Needed for cross service communication
 func Merge(from, to interfaces.Request) {
 	to.SetMeta(from.GetMeta())
-	to.SetTracerData(from.GetTracerData())
 }
 
 // GetID for req - used for tracing and logging
@@ -55,17 +49,6 @@ func (r Request) GetID() string {
 // SetID for req - used for tracing and logging
 func (r *Request) SetID(id string) interfaces.Request {
 	return r.SetMetaProp("x-trace-id", id)
-}
-
-// GetTracerData for req
-func (r Request) GetTracerData() map[string][]string {
-	return r.TracerData
-}
-
-// SetTracerData for req
-func (r *Request) SetTracerData(d map[string][]string) interfaces.Request {
-	r.TracerData = d
-	return r
 }
 
 // GetMeta for req

@@ -19,5 +19,4 @@ func TestNewReq(t *testing.T) {
 	req := New()
 
 	assert.NotNil(t, req.Meta)
-	assert.NotNil(t, req.TracerData)
 }
