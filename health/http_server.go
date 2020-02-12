@@ -1,6 +1,7 @@
 package health
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -14,11 +15,13 @@ import (
 	and call InstallHealthcheck instead.
 */
 
-func init() {
+func StartHTTPServer(addr string) *http.Server {
 	disableHealthChecks := env.Truthy("DISABLE_HEALTH_CHECK")
 
 	if !disableHealthChecks {
 		r := chi.NewRouter()
+		httpServer := http.Server{Addr: addr, Handler: r}
+
 		InstallHealthcheck(r, "/healthcheck")
 
 		go func() {
@@ -28,10 +31,21 @@ func init() {
 					fmt.Println(r)
 				}
 			}()
-			err := http.ListenAndServe(":9001", r)
-			panic(err)
+
+			err := httpServer.ListenAndServe()
+
+			if err != http.ErrServerClosed {
+				panic(err)
+			}
 		}()
+		return &httpServer
 	}
+
+	return nil
+}
+
+func CloseHTTPServer(httpServer *http.Server) {
+	httpServer.Shutdown(context.Background())
 }
 
 func InstallHealthcheck(router chi.Router, endpointPath string) {

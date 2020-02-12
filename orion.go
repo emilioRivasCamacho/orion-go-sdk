@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/gig/orion-go-sdk/codec/msgpack"
@@ -30,20 +32,25 @@ type Factory = func() interfaces.Request
 
 // Service for orion
 type Service struct {
-	ID              string
-	Name            string
-	Timeout         int
-	Codec           interfaces.Codec
-	Transport       interfaces.Transport
-	Tracer          interfaces.Tracer
-	Logger          interfaces.Logger
-	HealthChecks    []health.Dependency
-	StopHealthCheck chan struct{}
+	ID                  string
+	Name                string
+	Timeout             int
+	Codec               interfaces.Codec
+	Transport           interfaces.Transport
+	Tracer              interfaces.Tracer
+	Logger              interfaces.Logger
+	HealthChecks        []health.Dependency
+	StopHealthCheck     chan struct{}
+	HTTPServer          *http.Server
+	HTTPPort            int
+	DisableHealthChecks bool
 }
 
 // DefaultServiceOptions setup
 func DefaultServiceOptions(opt *Options) {
-	// Do nothing by default
+	if opt.HTTPPort == 0 {
+		opt.HTTPPort = 9001
+	}
 }
 
 // UniqueName for given name and unique id
@@ -79,14 +86,16 @@ func New(name string, options ...Option) *Service {
 	uid, _ := uuid.NewV4()
 
 	s := &Service{
-		ID:           uid.String(),
-		Name:         name,
-		Timeout:      200,
-		Codec:        opts.Codec,
-		Transport:    opts.Transport,
-		Tracer:       opts.Tracer,
-		Logger:       opts.Logger,
-		HealthChecks: make([]health.Dependency, 0),
+		ID:                  uid.String(),
+		Name:                name,
+		Timeout:             200,
+		Codec:               opts.Codec,
+		Transport:           opts.Transport,
+		Tracer:              opts.Tracer,
+		Logger:              opts.Logger,
+		HealthChecks:        make([]health.Dependency, 0),
+		HTTPPort:            opts.HTTPPort,
+		DisableHealthChecks: opts.DisableHealthChecks,
 	}
 	return s
 }
@@ -239,6 +248,10 @@ func (s *Service) loopOverHealthChecks() {
 // Listen to the transport protocol
 func (s *Service) Listen(callback func()) {
 	s.loopOverHealthChecks()
+	if !s.DisableHealthChecks {
+		s.HTTPServer = health.StartHTTPServer(":" + strconv.Itoa(s.HTTPPort))
+	}
+
 	s.Transport.Listen(callback)
 }
 
@@ -248,16 +261,18 @@ func (s *Service) Close() {
 		s.StopHealthCheck <- struct{}{}
 		s.StopHealthCheck = nil
 	}
+
+	if s.HTTPServer != nil {
+		health.CloseHTTPServer(s.HTTPServer)
+		s.HTTPServer = nil
+	}
+
 	s.Transport.Close()
 }
 
 // OnClose adds a handler to a transport connection closed event
 func (s *Service) OnClose(handler func()) {
 	s.Transport.OnClose(func(*nats.Conn) {
-		if s.StopHealthCheck != nil {
-			s.StopHealthCheck <- struct{}{}
-			s.StopHealthCheck = nil
-		}
 		handler()
 	})
 }
