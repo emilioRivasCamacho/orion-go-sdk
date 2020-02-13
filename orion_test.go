@@ -11,6 +11,10 @@ import (
 
 var svc *Service
 
+func DisableHealthChecks(opt *Options) {
+	opt.DisableHealthChecks = true
+}
+
 func TestHandle(t *testing.T) {
 	type params struct {
 		A int
@@ -19,7 +23,7 @@ func TestHandle(t *testing.T) {
 	expected := 3
 	done := make(chan int)
 
-	calc := New("calc")
+	calc := New("calc", DisableHealthChecks)
 
 	factory := func() interfaces.Request {
 		return &Request{}
@@ -63,7 +67,7 @@ func TestHandle(t *testing.T) {
 func TestTimeout(t *testing.T) {
 	done := make(chan bool)
 
-	s := New("timeout")
+	s := New("timeout", DisableHealthChecks)
 
 	handler := func(req *Request) *Response {
 		time.Sleep(201 * time.Millisecond)
@@ -105,7 +109,7 @@ func TestTimeout(t *testing.T) {
 func TestPubSub(t *testing.T) {
 	done := make(chan bool)
 
-	pubsub := New("pubsub")
+	pubsub := New("pubsub", DisableHealthChecks)
 
 	pubsub.On("event", func(args []byte) {
 		done <- true
@@ -122,7 +126,7 @@ func TestPubSub(t *testing.T) {
 func TestOnClose(t *testing.T) {
 	done := make(chan bool)
 
-	onclose := New("onclose")
+	onclose := New("onclose", DisableHealthChecks)
 
 	onclose.OnClose(func() {
 		done <- true
@@ -159,7 +163,7 @@ func TestCustomReqRes(t *testing.T) {
 	expected := 3
 	done := make(chan int)
 
-	calc := New("calc")
+	calc := New("calc", DisableHealthChecks)
 
 	factory := func() interfaces.Request {
 		return &customReq{}
@@ -197,9 +201,7 @@ func TestCustomReqRes(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	svc = New("e2e")
-	svc.RegisterToWatchdog = false
-	svc.EnableStatusEndpoints = false
+	svc = New("e2e", DisableHealthChecks)
 	svc.Listen(func() {
 		tests := m.Run()
 		os.Exit(tests)

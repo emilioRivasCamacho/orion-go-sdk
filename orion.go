@@ -5,11 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"reflect"
-	"runtime/debug"
+	"strconv"
 	"strings"
-
-	"time"
 
 	"github.com/gig/orion-go-sdk/codec/msgpack"
 	"github.com/gig/orion-go-sdk/env"
@@ -24,9 +23,8 @@ import (
 )
 
 var (
-	registerToWatchdogByDefault = env.Truthy("WATCHDOG")
-	verbose                     = env.Truthy("VERBOSE")
-	concurrentHandlers          = env.Truthy("CONCURRENT_HANDLERS")
+	verbose            = env.Truthy("VERBOSE")
+	concurrentHandlers = env.Truthy("CONCURRENT_HANDLERS")
 )
 
 // Factory func type - the one that creates the req obj
@@ -34,25 +32,25 @@ type Factory = func() interfaces.Request
 
 // Service for orion
 type Service struct {
-	ID                    string
-	Name                  string
-	Timeout               int
-	Codec                 interfaces.Codec
-	Transport             interfaces.Transport
-	Tracer                interfaces.Tracer
-	Logger                interfaces.Logger
-	RegisterToWatchdog    bool
-	EnableStatusEndpoints bool
-	WatchdogServiceName   string
-	closeWatchdogChannel  chan bool
-	HealthChecks          map[string]health.Dependency
+	ID                  string
+	Name                string
+	Timeout             int
+	Codec               interfaces.Codec
+	Transport           interfaces.Transport
+	Tracer              interfaces.Tracer
+	Logger              interfaces.Logger
+	HealthChecks        []health.Dependency
+	StopHealthCheck     chan struct{}
+	HTTPServer          *http.Server
+	HTTPPort            int
+	DisableHealthChecks bool
 }
 
 // DefaultServiceOptions setup
 func DefaultServiceOptions(opt *Options) {
-	opt.RegisterToWatchdog = registerToWatchdogByDefault
-	opt.EnableStatusEndpoints = registerToWatchdogByDefault
-	opt.WatchdogServiceName = health.DefaultWatchdogServiceName()
+	if opt.HTTPPort == 0 {
+		opt.HTTPPort = 9001
+	}
 }
 
 // UniqueName for given name and unique id
@@ -88,19 +86,17 @@ func New(name string, options ...Option) *Service {
 	uid, _ := uuid.NewV4()
 
 	s := &Service{
-		ID:                    uid.String(),
-		Name:                  name,
-		Timeout:               200,
-		Codec:                 opts.Codec,
-		Transport:             opts.Transport,
-		Tracer:                opts.Tracer,
-		Logger:                opts.Logger,
-		HealthChecks:          make(map[string]health.Dependency),
-		RegisterToWatchdog:    opts.RegisterToWatchdog,
-		EnableStatusEndpoints: opts.EnableStatusEndpoints,
-		WatchdogServiceName:   opts.WatchdogServiceName,
+		ID:                  uid.String(),
+		Name:                name,
+		Timeout:             200,
+		Codec:               opts.Codec,
+		Transport:           opts.Transport,
+		Tracer:              opts.Tracer,
+		Logger:              opts.Logger,
+		HealthChecks:        make([]health.Dependency, 0),
+		HTTPPort:            opts.HTTPPort,
+		DisableHealthChecks: opts.DisableHealthChecks,
 	}
-
 	return s
 }
 
@@ -178,89 +174,17 @@ func (s *Service) handle(path string, logging bool, handler interface{}, factory
 	})
 }
 
-func (s *Service) handleHealthCheck(healthCheckName string, handler interface{}, factory Factory) {
-	route := fmt.Sprintf("%s.%s", UniqueName(s.Name, s.ID), healthCheckName)
-
-	method := reflect.ValueOf(handler)
-	s.checkHandler(method)
-
-	s.Transport.Handle(route, UniqueName(s.Name, s.ID), func(data []byte, reply func([]byte)) {
-		req := factory()
-		defer func() {
-			if err := recover(); err != nil {
-				s.Logger.
-					CreateMessage("panic").
-					SetLevel(logger.ERROR).
-					SetID(req.GetID()).
-					SetParams(map[string]interface{}{
-						"error": err,
-						"stack": string(debug.Stack()),
-					}).
-					Send()
-				panic(err)
-			}
-		}()
-		req.SetError(s.Codec.Decode(data, req))
-
-		s.logRequest(req, true)
-
-		res := method.Call([]reflect.Value{reflect.ValueOf(req)})[0].Interface()
-
-		s.logResponse(req, res, true)
-
-		b, err := s.Codec.Encode(res)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		reply(b)
-	})
-}
-
 func (s *Service) RegisterHealthCheck(check *health.Dependency) {
 	// We store the original check function
 	realCheck := check.CheckIsWorking
 
 	// And we change the original check function with another one which times out if
 	// the check delays too much
-	check.CheckIsWorking = func() (string, *oerror.Error) { return s.checkHealthOrTimeout(check.Name, check.Timeout, realCheck) }
-	s.HealthChecks[check.Name] = *check
+	check.CheckIsWorking = health.WrapHealthCheckWithATimeout(check.Name, check.Timeout, realCheck)
+	s.HealthChecks = append(s.HealthChecks, *check)
 
 	// Then we restore the original object
 	check.CheckIsWorking = realCheck
-}
-
-func (s *Service) checkHealthOrTimeout(name string, timeout time.Duration, check func() (string, *oerror.Error)) (string, *oerror.Error) {
-
-	resultChannel := make(chan struct {
-		str  string
-		oerr *oerror.Error
-	})
-	timeoutChannel := make(chan bool)
-
-	go func() {
-		str, oerr := check()
-		resultChannel <- struct {
-			str  string
-			oerr *oerror.Error
-		}{
-			str:  str,
-			oerr: oerr,
-		}
-	}()
-
-	go func() {
-		time.Sleep(timeout)
-		timeoutChannel <- true
-	}()
-
-	select {
-	case res := <-resultChannel:
-		return res.str, res.oerr
-	case <-timeoutChannel:
-		oerr := oerror.New(string(health.HC_CRIT))
-		return "The health check " + name + " did timeout for " + string(timeout/time.Second) + " seconds", oerr
-	}
 }
 
 // Call orion service
@@ -308,85 +232,47 @@ type responseWithAnyPayload struct {
 	Payload interface{} `msgpack:"payload"`
 }
 
-func (s *Service) commsWithWatchdog() {
-	var resultChannel chan interfaces.Response
-
-	endpoints := make([]health.WatchdogDependency, 0)
-
-	for name, hc := range s.HealthChecks {
-		endpoints = append(endpoints, health.WatchdogDependency{name, hc.Timeout})
-	}
-
-	// This handles the loop for communications with the Watchdog
-	s.closeWatchdogChannel, resultChannel = health.WatchdogRegisterLoop(s.Name, s.ID, endpoints,
-		func(endpoint string, request interfaces.Request) interfaces.Response {
-			request.SetPath(s.WatchdogServiceName + endpoint)
-			res := &responseWithAnyPayload{}
-			s.Call(request, res)
-			return res
-		})
-
-	// Wait at least for the first try
-	<-resultChannel
-
-	// For every other result, just print failures
+func (s *Service) loopOverHealthChecks() {
+	s.StopHealthCheck = make(chan struct{})
 	go func() {
-		for s.closeWatchdogChannel != nil {
-			res := <-resultChannel
-			err := res.GetError()
-			if err != nil {
-				s.Logger.
-					CreateMessage("Health/Watchdog").
-					SetLevel(logger.ERROR).
-					SetMap(map[string]interface{}{
-						"description": "Error trying to register or ping the Watchdog '" + s.WatchdogServiceName + "' service.",
-					}).
-					Send()
+		defer func() {
+			if r := recover(); r != nil {
+				// TODO: What to do with the error?
+				fmt.Println(r)
 			}
-		}
+		}()
+		health.LoopOverHealthChecks(s.HealthChecks, s.StopHealthCheck)
 	}()
-}
-
-func (s *Service) listenToHealthChecks() {
-	// Status
-	for name, check := range s.HealthChecks {
-		s.handleHealthCheck("status."+name, health.DependencyHandleGenerator(check), health.DependencyFactory)
-	}
-
-	s.handleHealthCheck("status.am-i-up", health.AmIUpHandle, health.AmIUpFactory)
-	s.handleHealthCheck("status.aggregate", health.AggregateHandleGenerator(s.HealthChecks), health.AggregateFactory)
-	// s.Handle("status/about")
-	// s.Handle("status/traverse")
 }
 
 // Listen to the transport protocol
 func (s *Service) Listen(callback func()) {
-	if s.EnableStatusEndpoints {
-		s.listenToHealthChecks()
+	s.loopOverHealthChecks()
+	if !s.DisableHealthChecks {
+		s.HTTPServer = health.StartHTTPServer(":" + strconv.Itoa(s.HTTPPort))
 	}
-	if s.RegisterToWatchdog {
-		s.commsWithWatchdog()
-	}
-	s.Transport.Listen(callback)
-}
 
-func (s *Service) closeWatchdogLoop() {
-	if s.closeWatchdogChannel != nil {
-		s.closeWatchdogChannel <- true
-		s.closeWatchdogChannel = nil
-	}
+	s.Transport.Listen(callback)
 }
 
 // Close the transport protocol
 func (s *Service) Close() {
-	s.closeWatchdogLoop()
+	if s.StopHealthCheck != nil {
+		s.StopHealthCheck <- struct{}{}
+		s.StopHealthCheck = nil
+	}
+
+	if s.HTTPServer != nil {
+		health.CloseHTTPServer(s.HTTPServer)
+		s.HTTPServer = nil
+	}
+
 	s.Transport.Close()
 }
 
 // OnClose adds a handler to a transport connection closed event
 func (s *Service) OnClose(handler func()) {
 	s.Transport.OnClose(func(*nats.Conn) {
-		s.closeWatchdogLoop()
 		handler()
 	})
 }

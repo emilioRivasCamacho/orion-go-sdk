@@ -1,182 +1,52 @@
 package health
 
 import (
+	"sync"
 	"time"
-
-	"os"
-
-	oerror "github.com/gig/orion-go-sdk/error"
-	"github.com/gig/orion-go-sdk/interfaces"
-	"github.com/gig/orion-go-sdk/request"
-	"github.com/gig/orion-go-sdk/response"
 )
 
 const (
-	// How long will take the service to ping the watchdog
-	watchdogLoopPing = 1 * time.Minute
-
-	// How long will take the service to retry the register to watchdog
-	watchdogLoopRetry = 10 * time.Second
-
-	// Timeout if watchdog is not answering
-	watchdogTimeout = 10 * time.Second
+	// How often the loop will check that all dependencies are OK
+	defaultHealthCheckLoopPeriod = 30 * time.Second
 )
 
-func DefaultWatchdogServiceName() string {
-	return "watchdog"
-}
+// LoopOverHealthChecks loops FOREVER over the HealthChecks that are given.
+func LoopOverHealthChecks(dependencies []Dependency, close chan struct{}) {
+	run := true
+	runLock := sync.Mutex{}
+	delay := make(chan struct{}, 1)
+	delay <- struct{}{}
 
-type WatchdogPingRequest struct {
-	request.Request
-	Params struct {
-		ServiceID string `msgpack:"serviceId"`
-		Name      string `msgpack:"name"`
-	} `msgpack:"params"`
-}
-
-type WatchdogPingResponse struct {
-	response.Response
-	Payload struct {
-		Status HealthCheckResult `msgpack:"status"`
-	} `msgpack:"payload"`
-}
-
-type WatchdogDependency struct {
-	Name    string        `msgpack:"name"`
-	Timeout time.Duration `msgpack:"timeout"`
-}
-
-type WatchdogRegisterRequest struct {
-	request.Request
-	Params struct {
-		ServiceID    string               `msgpack:"serviceId"`
-		Name         string               `msgpack:"name"`
-		Environment  map[string]string    `msgpack:"env"`
-		Dependencies []WatchdogDependency `msgpack:"dependencies"`
-	} `msgpack:"params"`
-}
-
-type WatchdogRegisterResponse struct {
-	response.Response
-	Payload struct {
-		Status HealthCheckResult `msgpack:"status"`
-	} `msgpack:"payload"`
-}
-
-func getEnvironment() map[string]string {
-	env := make(map[string]string)
-	HOST := os.Getenv("HOST")
-
-	if HOST != "" {
-		env["HOST"] = HOST
-	}
-	return env
-}
-
-func WatchdogRegisterLoop(
-	name string,
-	uid string,
-	listOfDependencies []WatchdogDependency,
-	requestToWatchdog func(endpoint string, request interfaces.Request) interfaces.Response) (closeChannel chan bool, responseChannel chan interfaces.Response) {
-	closeChannel = make(chan bool)
-	responseChannel = make(chan interfaces.Response)
-	timeoutChannel := make(chan bool)
-	loopTime := make(chan time.Duration, 1)
-
-	endThisLoop := false
-	imRegisteredInWatchdog := false
-
-	// Firstly don't wait for register
-	loopTime <- 0
-
-	// Loop every loopTime time
+	// This go function produces an event to the channel for the loop.
 	go func() {
-		for {
-			nextTime := <-loopTime
-			time.Sleep(nextTime)
-			if endThisLoop {
-				return
-			}
-			timeoutChannel <- true
+		runLock.Lock()
+		for run {
+			runLock.Unlock()
+			time.Sleep(defaultHealthCheckLoopPeriod)
+			delay <- struct{}{}
+			runLock.Lock()
 		}
+		runLock.Unlock()
 	}()
 
-	pingRequest := WatchdogPingRequest{
-		Params: struct {
-			ServiceID string `msgpack:"serviceId"`
-			Name      string `msgpack:"name"`
-		}{
-			ServiceID: uid,
-			Name:      name,
-		},
-	}
-
-	pingRequest.SetTimeoutDuration(watchdogTimeout)
-
-	registerRequest := WatchdogRegisterRequest{
-		Params: struct {
-			ServiceID    string               `msgpack:"serviceId"`
-			Name         string               `msgpack:"name"`
-			Environment  map[string]string    `msgpack:"env"`
-			Dependencies []WatchdogDependency `msgpack:"dependencies"`
-		}{
-			ServiceID:    uid,
-			Name:         name,
-			Environment:  getEnvironment(),
-			Dependencies: listOfDependencies,
-		},
-	}
-
-	// Then infinite loop of register/ping or close
-	go func() {
-		for {
-			select {
-			case <-timeoutChannel:
-				if imRegisteredInWatchdog {
-					// do ping
-					res := requestToWatchdog("/ping", &pingRequest)
-					everythingOk := res.GetError() == nil
-					if everythingOk {
-						loopTime <- watchdogLoopPing
-					} else {
-						imRegisteredInWatchdog = false
-
-						err := res.GetError()
-						if err.Code == WHO_ARE_YOU {
-							// Try to register immediately: the watchdog doesn't know this service,
-							// maybe because watchdog got restarted between two pings
-							loopTime <- 0
-						} else {
-							loopTime <- watchdogLoopRetry
-						}
-					}
-					responseChannel <- res
-				} else {
-					// do register
-					res := requestToWatchdog("/register", &registerRequest)
-					everythingOk := res.GetError() == nil
-					if everythingOk {
-						imRegisteredInWatchdog = true
-						loopTime <- watchdogLoopPing
-					} else {
-						loopTime <- watchdogLoopRetry
-					}
-					responseChannel <- res
+	for run {
+		select {
+		case <-close: // We want to end up the loop
+			runLock.Lock()
+			run = false
+			runLock.Unlock()
+		case <-delay: // Every loop period we run the health checks.
+			ResetSummaryOfHealthChecks()
+			for _, dep := range dependencies {
+				res, err := dep.CheckIsWorking()
+				if res == HC_CRIT {
+					AppendHealthCheckError(err)
+				} else if res == HC_WARN {
+					// TODO: Log there's a warning with a health check
 				}
-			case <-closeChannel:
-				endThisLoop = true
-				responseChannel <- &response.Response{}
-				return
 			}
+
 		}
-	}()
+	}
 
-	return closeChannel, responseChannel
-}
-
-type Dependency struct {
-	CheckIsWorking func() (string, *oerror.Error)
-	Timeout        time.Duration
-	IsInternal     bool
-	Name           string
 }
