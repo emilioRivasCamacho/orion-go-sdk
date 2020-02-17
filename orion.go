@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"reflect"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -18,12 +19,13 @@ import (
 	"github.com/gig/orion-go-sdk/logger"
 	"github.com/gig/orion-go-sdk/response"
 	"github.com/gig/orion-go-sdk/transport/nats"
+	"github.com/panjf2000/ants"
 	uuid "github.com/satori/go.uuid"
 )
 
 var (
-	verbose            = env.Truthy("VERBOSE")
-	concurrentHandlers = env.Truthy("CONCURRENT_HANDLERS")
+	verbose        = env.Truthy("VERBOSE")
+	threadPoolSize = env.Get("THREADPOOL_SIZE", strconv.Itoa(runtime.NumCPU()))
 )
 
 // Factory func type - the one that creates the req obj
@@ -37,6 +39,7 @@ type Service struct {
 	Codec               interfaces.Codec
 	Transport           interfaces.Transport
 	Logger              interfaces.Logger
+	ThreadPool          *ants.PoolWithFunc
 	HealthChecks        []health.Dependency
 	StopHealthCheck     chan struct{}
 	HTTPServer          *http.Server
@@ -79,6 +82,21 @@ func New(name string, options ...Option) *Service {
 
 	uid, _ := uuid.NewV4()
 
+	poolSize, err := strconv.Atoi(threadPoolSize)
+
+	if err != nil {
+		poolSize = runtime.NumCPU()
+	}
+
+	workerPool, err := ants.NewPoolWithFunc(poolSize, func(fn interface{}) {
+		toCall := fn.(func())
+		toCall()
+	}, ants.WithNonblocking(false))
+
+	if err != nil {
+		panic(err)
+	}
+
 	s := &Service{
 		ID:                  uid.String(),
 		Name:                name,
@@ -86,6 +104,7 @@ func New(name string, options ...Option) *Service {
 		Codec:               opts.Codec,
 		Transport:           opts.Transport,
 		Logger:              opts.Logger,
+		ThreadPool:          workerPool,
 		HealthChecks:        make([]health.Dependency, 0),
 		HTTPPort:            opts.HTTPPort,
 		DisableHealthChecks: opts.DisableHealthChecks,
@@ -142,7 +161,7 @@ func (s *Service) handle(path string, logging bool, handler interface{}, factory
 	s.checkHandler(method)
 
 	s.Transport.Handle(route, s.Name, func(data []byte, reply func([]byte)) {
-		runHandle := func() {
+		toProcess := func() {
 			req := factory()
 			req.SetError(s.Codec.Decode(data, req))
 
@@ -159,11 +178,8 @@ func (s *Service) handle(path string, logging bool, handler interface{}, factory
 
 			reply(b)
 		}
-		if concurrentHandlers {
-			go runHandle()
-			return
-		}
-		runHandle()
+
+		s.ThreadPool.Invoke(toProcess)
 	})
 }
 
