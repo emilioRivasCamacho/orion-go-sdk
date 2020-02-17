@@ -8,7 +8,6 @@ import "github.com/gig/orion-go-sdk/interfaces"
 type Options struct {
 	Codec               interfaces.Codec
 	Transport           interfaces.Transport
-	Tracer              interfaces.Tracer
 	Logger              interfaces.Logger
 	DisableHealthChecks bool
 	HTTPPort            int
@@ -28,12 +27,5 @@ func SetCodec(codec interfaces.Codec) Option {
 func SetTransport(transport interfaces.Transport) Option {
 	return func(o *Options) {
 		o.Transport = transport
-	}
-}
-
-// SetTracer for orion
-func SetTracer(tracer interfaces.Tracer) Option {
-	return func(o *Options) {
-		o.Tracer = tracer
 	}
 }

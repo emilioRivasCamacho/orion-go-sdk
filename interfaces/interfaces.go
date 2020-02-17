@@ -39,8 +39,6 @@ type Request interface {
 	SetPath(string) Request
 	GetID() string
 	SetID(string) Request
-	GetTracerData() map[string][]string
-	SetTracerData(map[string][]string) Request
 	GetTimeout() *int
 	SetTimeout(int) Request
 	SetTimeoutDuration(duration time.Duration) Request
@@ -52,11 +50,6 @@ type Request interface {
 	ParseParams(interface{}) error
 	SetParams(interface{}) error
 	SetError(error) Request
-}
-
-// Tracer interface
-type Tracer interface {
-	Trace(Request) func()
 }
 
 // Logger interface
