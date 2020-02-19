@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"reflect"
-	"runtime"
 	"strconv"
 	"strings"
 
@@ -23,9 +22,11 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+const defaultThreadPoolSize = 1
+
 var (
 	verbose        = env.Truthy("VERBOSE")
-	threadPoolSize = env.Get("THREADPOOL_SIZE", strconv.Itoa(runtime.NumCPU()))
+	threadPoolSize = env.Get("THREADPOOL_SIZE", strconv.Itoa(defaultThreadPoolSize))
 )
 
 // Factory func type - the one that creates the req obj
@@ -85,7 +86,7 @@ func New(name string, options ...Option) *Service {
 	poolSize, err := strconv.Atoi(threadPoolSize)
 
 	if err != nil {
-		poolSize = runtime.NumCPU()
+		poolSize = defaultThreadPoolSize
 	}
 
 	workerPool, err := ants.NewPoolWithFunc(poolSize, func(fn interface{}) {
