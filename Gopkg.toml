@@ -23,19 +23,7 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/nats-io/nats"
-
-[[constraint]]
-  branch = "master"
   name = "github.com/satori/go.uuid"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/openzipkin/zipkin-go-opentracing"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/opentracing/opentracing-go"
 
 [[constraint]]
   branch = "master"
