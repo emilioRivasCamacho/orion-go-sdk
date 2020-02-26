@@ -58,7 +58,12 @@ func (r Request) GetMeta() map[string]string {
 
 // SetMeta for req
 func (r *Request) SetMeta(m map[string]string) interfaces.Request {
-	r.Meta = m
+	if r.Meta == nil {
+		r.Meta = make(Meta)
+	}
+	for key, value := range m {
+		r.Meta[key] = value
+	}
 	return r
 }
 
