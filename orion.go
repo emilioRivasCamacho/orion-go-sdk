@@ -14,6 +14,7 @@ import (
 	"github.com/gig/orion-go-sdk/env"
 	oerror "github.com/gig/orion-go-sdk/error"
 	"github.com/gig/orion-go-sdk/health"
+	"github.com/gig/orion-go-sdk/health/checks"
 	"github.com/gig/orion-go-sdk/interfaces"
 	"github.com/gig/orion-go-sdk/logger"
 	"github.com/gig/orion-go-sdk/response"
@@ -51,8 +52,13 @@ type Service struct {
 // DefaultServiceOptions setup
 func DefaultServiceOptions(opt *Options) {
 	if opt.HTTPPort == 0 {
-		opt.HTTPPort = 9001
+		thePort, err := strconv.Atoi(env.Get("HTTP_SERVER_PORT", "9001"))
+		if err != nil {
+			panic(err)
+		}
+		opt.HTTPPort = thePort
 	}
+	opt.DisableHealthChecks = env.Truthy("DISABLE_HEALTH_CHECK")
 }
 
 // UniqueName for given name and unique id
@@ -110,6 +116,11 @@ func New(name string, options ...Option) *Service {
 		HTTPPort:            opts.HTTPPort,
 		DisableHealthChecks: opts.DisableHealthChecks,
 	}
+
+	if !opts.DisableHealthChecks {
+		s.RegisterHealthCheck(checks.NatsHealthcheck(opts.Transport))
+	}
+
 	return s
 }
 
@@ -253,8 +264,8 @@ func (s *Service) loopOverHealthChecks() {
 
 // Listen to the transport protocol
 func (s *Service) Listen(callback func()) {
-	s.loopOverHealthChecks()
 	if !s.DisableHealthChecks {
+		s.loopOverHealthChecks()
 		s.HTTPServer = health.StartHTTPServer(":" + strconv.Itoa(s.HTTPPort))
 	}
 

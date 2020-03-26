@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gig/orion-go-sdk/env"
-
 	"github.com/go-chi/chi"
 )
 
@@ -16,32 +14,26 @@ import (
 */
 
 func StartHTTPServer(addr string) *http.Server {
-	disableHealthChecks := env.Truthy("DISABLE_HEALTH_CHECK")
+	r := chi.NewRouter()
+	httpServer := http.Server{Addr: addr, Handler: r}
 
-	if !disableHealthChecks {
-		r := chi.NewRouter()
-		httpServer := http.Server{Addr: addr, Handler: r}
+	InstallHealthcheck(r, "/healthcheck")
 
-		InstallHealthcheck(r, "/healthcheck")
-
-		go func() {
-			defer func() {
-				if r := recover(); r != nil {
-					// TODO: What to do with the error?
-					fmt.Println(r)
-				}
-			}()
-
-			err := httpServer.ListenAndServe()
-
-			if err != http.ErrServerClosed {
-				panic(err)
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				// TODO: What to do with the error?
+				fmt.Println(r)
 			}
 		}()
-		return &httpServer
-	}
 
-	return nil
+		err := httpServer.ListenAndServe()
+
+		if err != http.ErrServerClosed {
+			panic(err)
+		}
+	}()
+	return &httpServer
 }
 
 func CloseHTTPServer(httpServer *http.Server) {

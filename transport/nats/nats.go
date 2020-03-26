@@ -21,6 +21,7 @@ type Transport struct {
 	conn         *Conn
 	close        chan struct{}
 	closeHandler func(*nats.Conn)
+	open         bool
 }
 
 // New returns client for NATS messaging
@@ -54,6 +55,7 @@ func New(options ...transport.Option) *Transport {
 		log.Fatal(err)
 	}
 
+	t.open = true
 	t.conn.SetDisconnectHandler(t.handleDisconnect)
 
 	t.close = make(chan struct{})
@@ -140,12 +142,21 @@ func (t *Transport) OnClose(handler interface{}) {
 
 func (t *Transport) handleUnexpectedClose(err error) {
 	if err == nats.ErrConnectionClosed {
-		t.closeHandler(t.conn)
+		t.open = false
+		if t.closeHandler != nil {
+			t.closeHandler(t.conn)
+		}
 	}
 }
 
 func (t *Transport) handleDisconnect(conn *nats.Conn) {
+	t.open = false
 	if t.closeHandler != nil {
 		t.closeHandler(t.conn)
 	}
+}
+
+// IsOpen returns wether the nats connection is open and ready to be used.
+func (t *Transport) IsOpen() bool {
+	return t.open
 }
