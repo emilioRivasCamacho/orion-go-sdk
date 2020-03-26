@@ -22,6 +22,7 @@ type Transport interface {
 	Handle(string, string, func([]byte, func([]byte))) error
 	Request(string, []byte, int) ([]byte, error)
 	Close()
+	IsOpen() bool
 	OnClose(interface{})
 }
 
