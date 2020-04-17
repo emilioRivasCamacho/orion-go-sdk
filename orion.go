@@ -175,9 +175,15 @@ func (s *Service) handle(path string, logging bool, handler interface{}, factory
 	s.Transport.Handle(route, s.Name, func(data []byte, reply func([]byte)) {
 		toProcess := func() {
 			req := factory()
-			req.SetError(s.Codec.Decode(data, req))
 
-			s.logRequest(req, logging)
+			err := s.Codec.Decode(data, req)
+			req.SetError(err)
+
+			s.logRequest(err, req, logging)
+
+			if err != nil {
+				panic(err)
+			}
 
 			res := method.Call([]reflect.Value{reflect.ValueOf(req)})[0].Interface()
 
@@ -299,7 +305,7 @@ func (s *Service) String() string {
 	return fmt.Sprintf("%s-%s", s.Name, s.ID)
 }
 
-func (s *Service) logRequest(raw interface{}, logging bool) {
+func (s *Service) logRequest(err error, raw interface{}, logging bool) {
 	if logging {
 
 		req, ok := raw.(interfaces.Request)
@@ -323,9 +329,15 @@ func (s *Service) logRequest(raw interface{}, logging bool) {
 			"meta":   req.GetMeta(),
 		}
 
+		level := logger.INFO
+		if err != nil {
+			level = logger.ERROR
+			params["error"] = err.Error()
+		}
+
 		s.Logger.
 			CreateMessage(req.GetPath()).
-			SetLevel(logger.INFO).
+			SetLevel(level).
 			SetID(req.GetID()).
 			SetMap(params).
 			Send()
