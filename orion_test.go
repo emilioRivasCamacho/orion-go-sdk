@@ -200,6 +200,64 @@ func TestCustomReqRes(t *testing.T) {
 	assert.Equal(t, expected, result)
 }
 
+func TestPathCalculation(t *testing.T) {
+	svc = New("e2e", DisableHealthChecks)
+	route := svc.getRouteFromPath("action")
+	assert.Equal(t, "e2e.action", route)
+
+	route = svc.getRouteFromPath("module/action")
+	assert.Equal(t, "module.action", route)
+}
+
+func TestCustomModuleName(t *testing.T) {
+	type params struct {
+		A int
+		B int
+	}
+	expected := 3
+	done := make(chan int)
+
+	calc := New("calc", DisableHealthChecks)
+
+	factory := func() interfaces.Request {
+		return &Request{}
+	}
+
+	handle := func(req *Request) *Response {
+		res := &Response{}
+
+		p := &params{}
+		req.ParseParams(p)
+
+		res.SetPayload(p.A + p.B)
+		return res
+	}
+
+	calc.Handle("math/sum", handle, factory)
+
+	go calc.Listen(func() {
+		var result int
+
+		req := &Request{}
+		req.SetPath("/math/sum").SetParams(params{
+			A: 1,
+			B: 2,
+		})
+
+		res := &Response{}
+		svc.Call(req, res)
+
+		res.ParsePayload(&result)
+
+		calc.Close()
+
+		done <- result
+	})
+
+	result := <-done
+	assert.Equal(t, expected, result)
+}
+
 func TestMain(m *testing.M) {
 	svc = New("e2e", DisableHealthChecks)
 	svc.Listen(func() {
