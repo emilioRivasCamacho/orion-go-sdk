@@ -167,7 +167,7 @@ func (s *Service) Handle(path string, handler interface{}, factory Factory) {
 }
 
 func (s *Service) handle(path string, logging bool, handler interface{}, factory Factory) {
-	route := fmt.Sprintf("%s.%s", s.Name, path)
+	route := s.getRouteFromPath(path)
 
 	method := reflect.ValueOf(handler)
 	s.checkHandler(method)
@@ -381,6 +381,19 @@ func (s Service) checkHandler(method reflect.Value) {
 
 	if method.Type().NumOut() != 1 {
 		log.Fatal(errors.New("handler methods must have one return value"))
+	}
+}
+
+func (s Service) getRouteFromPath(path string) string {
+	parts := strings.Split(path, "/")
+	switch len(parts) {
+	case 1:
+		return fmt.Sprintf("%s.%s", s.Name, path)
+	case 2:
+		return fmt.Sprintf("%s.%s", parts[0], parts[1])
+	default:
+		log.Fatal(errors.New("handler path cannot contain more than one slash"))
+		return fmt.Sprintf("%s.%s", s.Name, path)
 	}
 }
 
