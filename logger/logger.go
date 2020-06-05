@@ -40,7 +40,6 @@ type Logger interface {
 
 func init() {
 	setVariables()
-	// initConsoleLogger()
 }
 
 // New graylog logger
