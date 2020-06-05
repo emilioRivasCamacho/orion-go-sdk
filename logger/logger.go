@@ -21,6 +21,7 @@ var (
 	GraylogPort = ""
 	host        = env.Get("HOST", "")
 	log         *logging.Logger
+	minLogLevel = env.Get("ORION_LOGGER_LEVEL", "debug")
 )
 
 // Graylog logger
@@ -39,11 +40,13 @@ type Logger interface {
 
 func init() {
 	setVariables()
-	initConsoleLogger()
+	// initConsoleLogger()
 }
 
 // New graylog logger
 func New(serviceName string, verbose bool) *Graylog {
+	initConsoleLogger(serviceName)
+
 	port, err := strconv.Atoi(GraylogPort)
 	if err != nil {
 		log.Fatalf("Unable to parse graylog port %s", err)
@@ -96,6 +99,20 @@ func (m *Message) SetLevel(level int) *Message {
 	return m
 }
 
+// ShouldSkip checks the log level and do not log the messag if the level is too low
+func (m *Message) ShouldSkip() bool {
+	level := levelToNumber(minLogLevel)
+	msgLevel := DEBUG
+	if m.args["level"] != nil {
+		msgLevel = m.args["level"].(int)
+	}
+
+	if level < msgLevel {
+		return true
+	}
+	return false
+}
+
 // SetID for message
 func (m *Message) SetID(id string) *Message {
 	m.args["x-trace-id"] = id
@@ -132,6 +149,10 @@ func (message *Message) SetLineOfCode(code oerror.LineOfCode) *Message {
 
 // Send message
 func (m *Message) Send() {
+	if m.ShouldSkip() {
+		return
+	}
+
 	for key, value := range DefaultParams {
 		m.args[key] = value
 	}
@@ -168,7 +189,6 @@ func (m *Message) log(data string) {
 	default:
 		log.Info("Debug %s", data)
 	}
-
 }
 
 func setVariables() {
@@ -180,11 +200,11 @@ func setVariables() {
 	}
 }
 
-func initConsoleLogger() {
-	log = logging.MustGetLogger("Orion")
+func initConsoleLogger(serviceName string) {
+	log = logging.MustGetLogger(serviceName)
 	backend := logging.NewLogBackend(os.Stdout, "", 0)
 	format := logging.MustStringFormatter(
-		`%{color}%{time:15:04:05.000} ▶ %{color:reset} %{message}`,
+		`%{color}%{time:15:04:05.000} | %{module} ▶ %{color:reset} %{message}`,
 	)
 	logging.SetBackend(logging.NewBackendFormatter(backend, format))
 }
