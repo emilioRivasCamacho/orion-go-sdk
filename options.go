@@ -11,6 +11,7 @@ type Options struct {
 	Logger              interfaces.Logger
 	DisableHealthChecks bool
 	HTTPPort            int
+	Register            interfaces.Register
 }
 
 // Option type

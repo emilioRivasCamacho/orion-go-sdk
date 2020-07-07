@@ -1,7 +1,7 @@
 package response
 
 import (
-	"github.com/gig/orion-go-sdk/codec/msgpack"
+	jsoncodec "github.com/gig/orion-go-sdk/codec/json"
 	oerror "github.com/gig/orion-go-sdk/error"
 	"github.com/gig/orion-go-sdk/interfaces"
 )
@@ -10,11 +10,11 @@ import (
 type Response struct {
 	// Empty json tags because we need to omit those fields when generating the docs
 	// and we do not plan to support json
-	Payload []byte        `json:"-" msgpack:"payload"`
-	Error   *oerror.Error `json:"-" msgpack:"error"`
+	Payload []byte        `json:"payload"`
+	Error   *oerror.Error `json:"error"`
 }
 
-var codec = msgpack.New()
+var codec = jsoncodec.New()
 
 // New reponse
 func New() *Response {

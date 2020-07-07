@@ -1,7 +1,6 @@
 package orion
 
 import (
-	"os"
 	"testing"
 	"time"
 
@@ -258,10 +257,10 @@ func TestCustomModuleName(t *testing.T) {
 	assert.Equal(t, expected, result)
 }
 
-func TestMain(m *testing.M) {
+/*func TestMain(m *testing.M) {
 	svc = New("e2e", DisableHealthChecks)
 	svc.Listen(func() {
 		tests := m.Run()
 		os.Exit(tests)
 	})
-}
+}*/

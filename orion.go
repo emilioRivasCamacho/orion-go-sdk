@@ -5,21 +5,24 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/http"
 	"reflect"
 	"strconv"
 	"strings"
 
-	"github.com/gig/orion-go-sdk/codec/msgpack"
+	"github.com/gig/orion-go-sdk/transport"
+	"github.com/phayes/freeport"
+
+	"github.com/gig/orion-go-sdk/transport/http2"
+
+	jsoncodec "github.com/gig/orion-go-sdk/codec/json"
+
 	"github.com/gig/orion-go-sdk/env"
 	oerror "github.com/gig/orion-go-sdk/error"
 	"github.com/gig/orion-go-sdk/health"
-	"github.com/gig/orion-go-sdk/health/checks"
 	"github.com/gig/orion-go-sdk/interfaces"
 	"github.com/gig/orion-go-sdk/logger"
 	"github.com/gig/orion-go-sdk/response"
 	"github.com/gig/orion-go-sdk/transport/nats"
-	"github.com/panjf2000/ants"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -37,14 +40,14 @@ type Factory = func() interfaces.Request
 type Service struct {
 	ID                  string
 	Name                string
+	InstanceName        string
 	Timeout             int
 	Codec               interfaces.Codec
 	Transport           interfaces.Transport
+	Register            interfaces.Register
 	Logger              interfaces.Logger
-	ThreadPool          *ants.PoolWithFunc
 	HealthChecks        []health.Dependency
 	StopHealthCheck     chan struct{}
-	HTTPServer          *http.Server
 	HTTPPort            int
 	DisableHealthChecks bool
 }
@@ -52,7 +55,7 @@ type Service struct {
 // DefaultServiceOptions setup
 func DefaultServiceOptions(opt *Options) {
 	if opt.HTTPPort == 0 {
-		thePort, err := strconv.Atoi(env.Get("HTTP_SERVER_PORT", "9001"))
+		thePort, err := strconv.Atoi(env.Get("HTTP_SERVER_PORT", "0"))
 		if err != nil {
 			panic(err)
 		}
@@ -76,12 +79,37 @@ func New(name string, options ...Option) *Service {
 		setter(opts)
 	}
 
-	if opts.Transport == nil {
-		opts.Transport = nats.New()
+	poolSize, err := strconv.Atoi(threadPoolSize)
+
+	if err != nil {
+		poolSize = defaultThreadPoolSize
 	}
 
-	// as for now, the codec will always be msgpack
-	opts.Codec = msgpack.New()
+	if opts.Transport == nil {
+		var port int
+
+		if opts.HTTPPort == 0 {
+			port, err = freeport.GetFreePort()
+
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
+		t := http2.New(func(options *transport.Options) {
+			options.Http2Port = port
+			options.URL = "host.docker.internal"
+			options.PoolThreadSize = poolSize
+		})
+
+		opts.Transport = t
+
+		if opts.Register == nil {
+			opts.Register = t
+		}
+	}
+
+	opts.Codec = jsoncodec.New()
 
 	if opts.Logger == nil {
 		opts.Logger = logger.New(name, verbose)
@@ -89,36 +117,23 @@ func New(name string, options ...Option) *Service {
 
 	uid, _ := uuid.NewV4()
 
-	poolSize, err := strconv.Atoi(threadPoolSize)
+	err = opts.Register.Register(name, name+"@"+uid.String(), []string{})
 
 	if err != nil {
-		poolSize = defaultThreadPoolSize
-	}
-
-	workerPool, err := ants.NewPoolWithFunc(poolSize, func(fn interface{}) {
-		toCall := fn.(func())
-		toCall()
-	}, ants.WithNonblocking(false))
-
-	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 
 	s := &Service{
 		ID:                  uid.String(),
 		Name:                name,
+		InstanceName:        name + "@" + uid.String(),
 		Timeout:             200,
 		Codec:               opts.Codec,
 		Transport:           opts.Transport,
 		Logger:              opts.Logger,
-		ThreadPool:          workerPool,
 		HealthChecks:        make([]health.Dependency, 0),
 		HTTPPort:            opts.HTTPPort,
 		DisableHealthChecks: opts.DisableHealthChecks,
-	}
-
-	if !opts.DisableHealthChecks {
-		s.RegisterHealthCheck(checks.NatsHealthcheck(opts.Transport))
 	}
 
 	return s
@@ -135,15 +150,13 @@ func (s *Service) Emit(topic string, data interface{}) error {
 
 // On service emit
 func (s *Service) On(topic string, handler func([]byte)) {
-	subject := fmt.Sprintf("%s:%s", s.Name, topic)
-	s.Transport.Subscribe(subject, s.Name, handler)
+	s.Transport.Subscribe(topic, "", handler)
 }
 
 // SubscribeForRawMsg is like service.On except that it receives the raw messages
 // specific for the transport protocol instead of the message payload
 func (s *Service) SubscribeForRawMsg(topic string, handler func(interface{})) {
-	subject := fmt.Sprintf("%s:%s", s.Name, topic)
-	s.Transport.SubscribeForRawMsg(subject, s.Name, handler)
+	s.Transport.SubscribeForRawMsg(topic, "", handler)
 }
 
 // Decode bytes to passed interface
@@ -153,8 +166,7 @@ func (s *Service) Decode(data []byte, to interface{}) error {
 
 // HandleWithoutLogging enabled
 func (s *Service) HandleWithoutLogging(path string, handler interface{}, factory Factory) {
-	logging := false
-	s.handle(path, logging, handler, factory)
+	s.handle(path, false, handler, factory)
 }
 
 // Handle has enabled logging. What that means is when the request
@@ -162,42 +174,35 @@ func (s *Service) HandleWithoutLogging(path string, handler interface{}, factory
 // response is returned, the service will check for error and if there is such,
 // the error will be logged
 func (s *Service) Handle(path string, handler interface{}, factory Factory) {
-	logging := true
-	s.handle(path, logging, handler, factory)
+	s.handle(path, true, handler, factory)
 }
 
 func (s *Service) handle(path string, logging bool, handler interface{}, factory Factory) {
-	route := s.getRouteFromPath(path)
-
 	method := reflect.ValueOf(handler)
 	s.checkHandler(method)
 
-	s.Transport.Handle(route, s.Name, func(data []byte, reply func([]byte)) {
-		toProcess := func() {
-			req := factory()
+	s.Transport.Handle(path, "", func(data []byte, reply func([]byte)) {
+		req := factory()
 
-			err := s.Codec.Decode(data, req)
-			req.SetError(err)
+		err := s.Codec.Decode(data, req)
+		req.SetError(err)
 
-			s.logRequest(err, req, logging)
+		s.logRequest(err, req, logging)
 
-			if err != nil {
-				panic(err)
-			}
-
-			res := method.Call([]reflect.Value{reflect.ValueOf(req)})[0].Interface()
-
-			s.logResponse(req, res, logging)
-
-			b, err := s.Codec.Encode(res)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			reply(b)
+		if err != nil {
+			panic(err)
 		}
 
-		s.ThreadPool.Invoke(toProcess)
+		res := method.Call([]reflect.Value{reflect.ValueOf(req)})[0].Interface()
+
+		s.logResponse(req, res, logging)
+
+		b, err := s.Codec.Encode(res)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		reply(b)
 	})
 }
 
@@ -272,7 +277,7 @@ func (s *Service) loopOverHealthChecks() {
 func (s *Service) Listen(callback func()) {
 	if !s.DisableHealthChecks {
 		s.loopOverHealthChecks()
-		s.HTTPServer = health.StartHTTPServer(":" + strconv.Itoa(s.HTTPPort))
+		health.InstallHealthcheck(s.Transport, "/"+s.InstanceName+"/healthcheck")
 	}
 
 	s.Transport.Listen(callback)
@@ -283,11 +288,6 @@ func (s *Service) Close() {
 	if s.StopHealthCheck != nil {
 		s.StopHealthCheck <- struct{}{}
 		s.StopHealthCheck = nil
-	}
-
-	if s.HTTPServer != nil {
-		health.CloseHTTPServer(s.HTTPServer)
-		s.HTTPServer = nil
 	}
 
 	s.Transport.Close()
@@ -381,19 +381,6 @@ func (s Service) checkHandler(method reflect.Value) {
 
 	if method.Type().NumOut() != 1 {
 		log.Fatal(errors.New("handler methods must have one return value"))
-	}
-}
-
-func (s Service) getRouteFromPath(path string) string {
-	parts := strings.Split(path, "/")
-	switch len(parts) {
-	case 1:
-		return fmt.Sprintf("%s.%s", s.Name, path)
-	case 2:
-		return fmt.Sprintf("%s.%s", parts[0], parts[1])
-	default:
-		log.Fatal(errors.New("handler path cannot contain more than one slash"))
-		return fmt.Sprintf("%s.%s", s.Name, path)
 	}
 }
 

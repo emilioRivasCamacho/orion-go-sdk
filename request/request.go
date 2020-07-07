@@ -3,7 +3,8 @@ package request
 import (
 	"time"
 
-	"github.com/gig/orion-go-sdk/codec/msgpack"
+	jsoncodec "github.com/gig/orion-go-sdk/codec/json"
+
 	"github.com/gig/orion-go-sdk/interfaces"
 	uuid "github.com/satori/go.uuid"
 )
@@ -16,14 +17,14 @@ type Meta map[string]string
 type Request struct {
 	// Empty json tags because we need to omit those fields when generating the docs
 	// and we do not plan to support json
-	Path    string `json:"-" msgpack:"path"`
-	Params  []byte `json:"-" msgpack:"params"`
-	Meta    Meta   `json:"-" msgpack:"meta"`
-	Timeout *int   `json:"-" msgpack:"timeout"`
-	Error   error  `json:"-" msgpack:",omitempty"`
+	Path    string `json:"path"`
+	Params  []byte `json:"params"`
+	Meta    Meta   `json:"meta"`
+	Timeout *int   `json:"timeout"`
+	Error   error  `json:"error,omitempty"`
 }
 
-var codec = msgpack.New()
+var codec = jsoncodec.New()
 
 // New request
 func New() *Request {

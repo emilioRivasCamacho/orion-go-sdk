@@ -53,5 +53,10 @@ type Request interface {
 	SetError(error) Request
 }
 
+// Register interface
+type Register interface {
+	Register(serviceName string, instanceName string, prefixList []string) error
+}
+
 // Logger interface
 type Logger = logger.Logger

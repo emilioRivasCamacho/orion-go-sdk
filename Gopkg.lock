@@ -19,7 +19,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:0c99a69e65505c8735a7ca2786eae609bc5070f36c87bf873cee85a85a04ffbe"
+  digest = "1:3124a13cbc054df83f8b9311761c8c86094ffb2fd14e9d5860ac73cd03042196"
   name = "github.com/gig/gelf"
   packages = [
     "chunk",
@@ -93,6 +93,14 @@
   version = "v2.1.0"
 
 [[projects]]
+  digest = "1:7879c0c194c2befcb7e9aaf0163f21daf9f33e5c74372949bed08b6396736ed0"
+  name = "github.com/phayes/freeport"
+  packages = ["."]
+  pruneopts = ""
+  revision = "b8543db493a5ed890c5499e935e2cad7504f3a04"
+  version = "1.0.2"
+
+[[projects]]
   digest = "1:256484dbbcd271f9ecebc6795b2df8cad4c458dd0f5fd82a8c2fa0c29f233411"
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
@@ -128,9 +136,40 @@
   branch = "master"
   digest = "1:f3ee2a699dd02cac37fbca1d028f1121ce0e48143a0f9abd293d3141dcfe6b92"
   name = "golang.org/x/net"
-  packages = ["context"]
+  packages = [
+    "context",
+    "http2",
+    "http2/hpack",
+    "idna",
+    "lex/httplex",
+  ]
   pruneopts = ""
   revision = "5ccada7d0a7ba9aeb5d3aca8d3501b4c2a509fec"
+
+[[projects]]
+  digest = "1:fccda34e4c58111b1908d8d69bf8d57c41c8e2542bc18ec8cd38c4fa21057f71"
+  name = "golang.org/x/text"
+  packages = [
+    "collate",
+    "collate/build",
+    "internal/colltab",
+    "internal/gen",
+    "internal/language",
+    "internal/language/compact",
+    "internal/tag",
+    "internal/triegen",
+    "internal/ucd",
+    "language",
+    "secure/bidirule",
+    "transform",
+    "unicode/bidi",
+    "unicode/cldr",
+    "unicode/norm",
+    "unicode/rangetable",
+  ]
+  pruneopts = ""
+  revision = "23ae387dee1f90d29a23c0e87ee0b46038fbed0e"
+  version = "v0.3.3"
 
 [[projects]]
   digest = "1:934fb8966f303ede63aa405e2c8d7f0a427a05ea8df335dfdc1833dd4d40756f"
@@ -161,9 +200,11 @@
     "github.com/nats-io/go-nats",
     "github.com/op/go-logging",
     "github.com/panjf2000/ants",
+    "github.com/phayes/freeport",
     "github.com/satori/go.uuid",
     "github.com/segmentio/kafka-go",
     "github.com/stretchr/testify/assert",
+    "golang.org/x/net/http2",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
