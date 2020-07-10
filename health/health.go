@@ -1,13 +1,13 @@
 package health
 
 import (
-	"log"
-	"net/http"
 	"sync"
 	"time"
 
+	oresponse "github.com/gig/orion-go-sdk/response"
+
+	oerror "github.com/gig/orion-go-sdk/error"
 	"github.com/gig/orion-go-sdk/interfaces"
-	"github.com/gig/orion-go-sdk/transport/http2"
 )
 
 const (
@@ -55,26 +55,29 @@ func LoopOverHealthChecks(dependencies []Dependency, close chan struct{}) {
 	}
 }
 
-func InstallHealthcheck(t interfaces.Transport, endpointPath string) {
-	if http2Transport, ok := t.(*http2.Transport); ok {
-		http2Transport.GetRootRouter().Get(endpointPath, func(w http.ResponseWriter, r *http.Request) {
-			summary := GetSummaryOfHealthChecks()
+type HealthCheckResponse struct {
+	oresponse.Response
+	Payload struct {
+		Summary string `json:"summary"`
+	} `json:"payload"`
+}
 
-			if len(summary) == 0 {
-				w.WriteHeader(200)
-				// TODO: Handle this error
-				_, _ = w.Write([]byte("OK"))
-			} else {
-				summaryString := "Error(s):\n"
-				for _, err := range summary {
-					summaryString = summaryString + err.Error() + "\n"
-				}
-				w.WriteHeader(500)
-				// TODO: Handle this error
-				_, _ = w.Write([]byte(summaryString))
+func InstallHealthcheck(t interfaces.Transport, endpointPath string, group string) {
+	t.Handle(endpointPath, group, func(_ []byte, f func(interfaces.Response)) {
+		res := &HealthCheckResponse{}
+		if len(summary) == 0 {
+			res.Payload.Summary = "OK"
+			f(res)
+		} else {
+			summaryString := "Error(s):\n"
+			for _, err := range summary {
+				summaryString = summaryString + err.Error() + "\n"
 			}
-		})
-	} else {
-		log.Panic("we only support healthcheck for HTTP transports.")
-	}
+
+			res.Payload.Summary = summaryString
+			res.Error = oerror.New("CRIT")
+
+			f(res)
+		}
+	})
 }

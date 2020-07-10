@@ -9,12 +9,12 @@ import (
 	"strconv"
 	"strings"
 
+	jsoncodec "github.com/gig/orion-go-sdk/codec/json"
+
 	"github.com/gig/orion-go-sdk/transport"
 	"github.com/phayes/freeport"
 
 	"github.com/gig/orion-go-sdk/transport/http2"
-
-	jsoncodec "github.com/gig/orion-go-sdk/codec/json"
 
 	"github.com/gig/orion-go-sdk/env"
 	oerror "github.com/gig/orion-go-sdk/error"
@@ -22,7 +22,6 @@ import (
 	"github.com/gig/orion-go-sdk/interfaces"
 	"github.com/gig/orion-go-sdk/logger"
 	"github.com/gig/orion-go-sdk/response"
-	"github.com/gig/orion-go-sdk/transport/nats"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -50,6 +49,7 @@ type Service struct {
 	StopHealthCheck     chan struct{}
 	HTTPPort            int
 	DisableHealthChecks bool
+	Prefixes            map[string]struct{}
 }
 
 // DefaultServiceOptions setup
@@ -64,16 +64,13 @@ func DefaultServiceOptions(opt *Options) {
 	opt.DisableHealthChecks = env.Truthy("DISABLE_HEALTH_CHECK")
 }
 
-// UniqueName for given name and unique id
-func UniqueName(name string, uniqueID string) string {
-	return name + "@" + uniqueID
-}
-
 // New orion service
 func New(name string, options ...Option) *Service {
 	opts := &Options{}
 
 	DefaultServiceOptions(opts)
+
+	opts.Codec = jsoncodec.New()
 
 	for _, setter := range options {
 		setter(opts)
@@ -94,12 +91,14 @@ func New(name string, options ...Option) *Service {
 			if err != nil {
 				log.Fatal(err)
 			}
+			opts.HTTPPort = port
 		}
 
 		t := http2.New(func(options *transport.Options) {
 			options.Http2Port = port
 			options.URL = "host.docker.internal"
 			options.PoolThreadSize = poolSize
+			options.Codec = opts.Codec
 		})
 
 		opts.Transport = t
@@ -109,19 +108,11 @@ func New(name string, options ...Option) *Service {
 		}
 	}
 
-	opts.Codec = jsoncodec.New()
-
 	if opts.Logger == nil {
 		opts.Logger = logger.New(name, verbose)
 	}
 
 	uid, _ := uuid.NewV4()
-
-	err = opts.Register.Register(name, name+"@"+uid.String(), []string{})
-
-	if err != nil {
-		log.Panic(err)
-	}
 
 	s := &Service{
 		ID:                  uid.String(),
@@ -134,6 +125,8 @@ func New(name string, options ...Option) *Service {
 		HealthChecks:        make([]health.Dependency, 0),
 		HTTPPort:            opts.HTTPPort,
 		DisableHealthChecks: opts.DisableHealthChecks,
+		Register:            opts.Register,
+		Prefixes:            make(map[string]struct{}),
 	}
 
 	return s
@@ -141,22 +134,25 @@ func New(name string, options ...Option) *Service {
 
 // Emit to services
 func (s *Service) Emit(topic string, data interface{}) error {
+	route := "/" + strings.ReplaceAll(topic, ":", "/")
+
 	msg, err := s.Codec.Encode(data)
 	if err != nil {
 		return err
 	}
-	return s.Transport.Publish(topic, msg)
+
+	return s.Transport.Publish(route, msg)
 }
 
 // On service emit
 func (s *Service) On(topic string, handler func([]byte)) {
-	s.Transport.Subscribe(topic, "", handler)
+	s.Transport.Subscribe(topic, s.Name, handler)
 }
 
 // SubscribeForRawMsg is like service.On except that it receives the raw messages
 // specific for the transport protocol instead of the message payload
 func (s *Service) SubscribeForRawMsg(topic string, handler func(interface{})) {
-	s.Transport.SubscribeForRawMsg(topic, "", handler)
+	s.Transport.SubscribeForRawMsg(topic, s.Name, handler)
 }
 
 // Decode bytes to passed interface
@@ -177,11 +173,31 @@ func (s *Service) Handle(path string, handler interface{}, factory Factory) {
 	s.handle(path, true, handler, factory)
 }
 
+func (s *Service) extractGroup(path string) (string, string, bool) {
+	if path[0] == '/' {
+		return s.Name, path[1:], false
+	}
+
+	split := strings.Split(path, "/")
+
+	if len(split) == 1 {
+		return s.Name, path, false
+	} else {
+		return split[0], strings.Join(split[1:], "/"), true
+	}
+}
+
 func (s *Service) handle(path string, logging bool, handler interface{}, factory Factory) {
 	method := reflect.ValueOf(handler)
 	s.checkHandler(method)
 
-	s.Transport.Handle(path, "", func(data []byte, reply func([]byte)) {
+	group, route, isPrefix := s.extractGroup(path)
+
+	if isPrefix {
+		s.Prefixes[group] = struct{}{}
+	}
+
+	s.Transport.Handle(route, group, func(data []byte, reply func(res interfaces.Response)) {
 		req := factory()
 
 		err := s.Codec.Decode(data, req)
@@ -197,12 +213,7 @@ func (s *Service) handle(path string, logging bool, handler interface{}, factory
 
 		s.logResponse(req, res, logging)
 
-		b, err := s.Codec.Encode(res)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		reply(b)
+		reply(res.(interfaces.Response))
 	})
 }
 
@@ -230,7 +241,7 @@ func (s *Service) Call(req interfaces.Request, raw interface{}) {
 		return
 	}
 
-	path := replaceOmitEmpty(req.GetPath(), "/", ".")
+	path := req.GetPath()
 	b, err := s.Transport.Request(path, encoded, s.getTimeout(req))
 	if err != nil {
 		res.SetError(oerror.New("ORION_TRANSPORT").SetMessage(err.Error()).SetLineOfCode(oerror.GenerateLOC(1)))
@@ -275,9 +286,23 @@ func (s *Service) loopOverHealthChecks() {
 
 // Listen to the transport protocol
 func (s *Service) Listen(callback func()) {
+	if s.Register != nil {
+		var prefixes []string
+
+		for k, _ := range s.Prefixes {
+			prefixes = append(prefixes, k)
+		}
+
+		err := s.Register.Register(s.Name, s.Name+"@"+s.ID, prefixes)
+
+		if err != nil {
+			log.Panic(err)
+		}
+	}
+
 	if !s.DisableHealthChecks {
 		s.loopOverHealthChecks()
-		health.InstallHealthcheck(s.Transport, "/"+s.InstanceName+"/healthcheck")
+		health.InstallHealthcheck(s.Transport, "healthcheck", s.InstanceName)
 	}
 
 	s.Transport.Listen(callback)
@@ -295,7 +320,7 @@ func (s *Service) Close() {
 
 // OnClose adds a handler to a transport connection closed event
 func (s *Service) OnClose(handler func()) {
-	s.Transport.OnClose(func(*nats.Conn) {
+	s.Transport.OnClose(func() {
 		handler()
 	})
 }
@@ -382,16 +407,6 @@ func (s Service) checkHandler(method reflect.Value) {
 	if method.Type().NumOut() != 1 {
 		log.Fatal(errors.New("handler methods must have one return value"))
 	}
-}
-
-func replaceOmitEmpty(str string, split string, join string) string {
-	var r []string
-	for _, str := range strings.Split(str, split) {
-		if str != "" {
-			r = append(r, str)
-		}
-	}
-	return strings.Join(r, join)
 }
 
 func checkRequestCast(ok bool) {

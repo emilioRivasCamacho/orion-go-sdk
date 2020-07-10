@@ -1,10 +1,13 @@
 package transport
 
+import "github.com/gig/orion-go-sdk/interfaces"
+
 // Options for nats
 type Options struct {
 	URL            string
 	Http2Port      int
 	PoolThreadSize int
+	Codec          interfaces.Codec
 }
 
 // Option type

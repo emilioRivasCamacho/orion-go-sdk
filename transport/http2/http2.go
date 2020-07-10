@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gig/orion-go-sdk/interfaces"
+
 	"github.com/gig/orion-go-sdk/env"
 
 	"github.com/gig/orion-go-sdk/transport"
@@ -29,19 +31,22 @@ func PrepareHttp2Transport() *http2.Transport {
 
 // Transport object
 type Transport struct {
+	codec        interfaces.Codec
 	client       http.Client
 	server       http.Server
 	host         string
 	port         int
 	gatewayUrl   string
-	router       chi.Router
 	root         chi.Router
 	closeHandler func()
 	open         bool
 	poolLimit    chan struct{}
 }
 
-// New returns client for NATS messaging
+var _ interfaces.Transport = (*Transport)(nil)
+var _ interfaces.Register = (*Transport)(nil)
+
+// New returns client for HTTP2 messaging
 func New(options ...transport.Option) *Transport {
 	optionsObj := transport.Options{}
 
@@ -49,7 +54,6 @@ func New(options ...transport.Option) *Transport {
 		o(&optionsObj)
 	}
 
-	router := chi.NewRouter()
 	root := chi.NewRouter()
 
 	// Default pool limit of 1:
@@ -68,11 +72,12 @@ func New(options ...transport.Option) *Transport {
 	},
 		gatewayUrl: env.Get("GATEWAY_URL", "https://localhost"),
 		root:       root,
-		router:     router,
 		host:       optionsObj.URL,
 		port:       optionsObj.Http2Port,
 		poolLimit:  make(chan struct{}, poolLimit),
+		codec:      optionsObj.Codec,
 	}
+
 }
 
 // Listen to nats
@@ -97,8 +102,7 @@ func (t *Transport) Listen(callback func()) {
 }
 
 // Publish to topic
-func (t *Transport) Publish(topic string, data []byte) error {
-	route := "/" + strings.ReplaceAll(topic, ":", "/")
+func (t *Transport) Publish(route string, data []byte) error {
 	buffer := bytes.NewBuffer(data)
 
 	req, err := http.NewRequest("POST", t.gatewayUrl+route, buffer)
@@ -116,8 +120,8 @@ func (t *Transport) Publish(topic string, data []byte) error {
 
 // Subscribe for a topic given a handler. For http2, this method can't fail
 func (t *Transport) Subscribe(topic string, group string, handler func([]byte)) error {
-	route := "/" + strings.ReplaceAll(topic, ":", "/")
-	t.router.Post(route, func(writer http.ResponseWriter, request *http.Request) {
+	route := "/" + group + "/" + strings.ReplaceAll(topic, ":", "/")
+	t.root.Post(route, func(writer http.ResponseWriter, request *http.Request) {
 		defer request.Body.Close()
 		data, err := ioutil.ReadAll(request.Body)
 		if err != nil {
@@ -146,18 +150,13 @@ func (t *Transport) SubscribeForRawMsg(topic string, group string, handler func(
 }
 
 // Handle path
-func (t *Transport) Handle(path string, group string, handler func([]byte, func([]byte))) error {
-	prefix := strings.ReplaceAll(group, ".", "/")
-	prefix = strings.ReplaceAll(prefix, "//", "/")
-
+func (t *Transport) Handle(path string, group string, handler func([]byte, func(interfaces.Response))) error {
 	route := strings.ReplaceAll(path, ".", "/")
 	route = strings.ReplaceAll(route, "//", "/")
 
-	if prefix != "" {
-		route = prefix + "/" + route
-	}
+	route = "/" + group + "/" + route
 
-	t.router.HandleFunc("/"+route, func(writer http.ResponseWriter, request *http.Request) {
+	t.root.HandleFunc(route, func(writer http.ResponseWriter, request *http.Request) {
 		bodyData, err := ioutil.ReadAll(request.Body)
 
 		if err != nil {
@@ -168,10 +167,21 @@ func (t *Transport) Handle(path string, group string, handler func([]byte, func(
 		}
 
 		t.poolControl(func() {
-			handler(bodyData, func(res []byte) {
+			handler(bodyData, func(res interfaces.Response) {
 				defer request.Body.Close()
-				_, err := writer.Write(res)
+
+				encoded, err := t.codec.Encode(res)
+
 				if err != nil {
+					writer.WriteHeader(500)
+				}
+
+				_, err = writer.Write(encoded)
+				if err != nil {
+					writer.WriteHeader(500)
+				}
+
+				if err = res.GetError(); err != nil {
 					writer.WriteHeader(500)
 				}
 			})
@@ -244,8 +254,6 @@ type TraefikPayload struct {
 func (t *Transport) Register(serviceName string, instanceName string, prefixList []string) error {
 	registryUrl := env.Get("CONSUL_API_URL", "https://localhost:8501")
 
-	t.root.Mount("/"+serviceName, t.router)
-
 	payload := TraefikPayload{
 		Name: instanceName,
 		Tags: []string{
@@ -264,7 +272,7 @@ func (t *Transport) Register(serviceName string, instanceName string, prefixList
 			DeregisterCriticalServiceAfter string
 		}{
 			//Args: []string{"sh", "-c", "exit 0"},
-			Args:                           []string{"sh", "-c", "(curl -ks https://" + t.host + ":" + strconv.Itoa(t.port) + "/" + instanceName + "/healthcheck 2>&1 || echo \"CRIT\") | awk '{print($0); if($0 != \"OK\") exit 2;}'"},
+			Args:                           []string{"sh", "-c", "(curl -ks https://" + t.host + ":" + strconv.Itoa(t.port) + "/" + instanceName + "/healthcheck 2>&1 || echo \"CRIT\") | awk '$1 ~ /\"summary\":\"OK\"/ {print; exit 0} {exit 2}'"},
 			Interval:                       "500ms",
 			Timeout:                        "200ms",
 			DeregisterCriticalServiceAfter: "1s",
@@ -276,7 +284,7 @@ func (t *Transport) Register(serviceName string, instanceName string, prefixList
 		nPrefix = strings.ReplaceAll(nPrefix, "/", "_")
 
 		routerName := "router_" + nPrefix
-		payload.Tags = append(payload.Tags, "traefik.http.routers."+routerName+".rule=PathPrefix(`"+nPrefix+"`)")
+		payload.Tags = append(payload.Tags, "traefik.http.routers."+routerName+".rule=PathPrefix(`/"+nPrefix+"/`)")
 		payload.Tags = append(payload.Tags, "traefik.http.routers."+routerName+".service="+serviceName)
 		payload.Tags = append(payload.Tags, "traefik.http.routers."+routerName+".tls=true")
 	}
@@ -314,10 +322,6 @@ func (t *Transport) poolControl(f func()) {
 		<-t.poolLimit
 	}()
 	f()
-}
-
-func (t *Transport) GetRouter() chi.Router {
-	return t.router
 }
 
 func (t *Transport) GetRootRouter() chi.Router {

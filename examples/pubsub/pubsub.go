@@ -31,11 +31,22 @@ func main() {
 		return &TestRequest{}
 	})
 
+	svc.Handle("prefix/test", func(req *TestRequest) interfaces.Response {
+		fmt.Println(*req)
+		return &TestResponse{
+			Payload: map[string]string{
+				"key": "value",
+			},
+		}
+	}, func() interfaces.Request {
+		return &TestRequest{}
+	})
+
 	svc.On("event", func(bytes []byte) {
 		fmt.Println(string(bytes))
 	})
 
 	svc.Listen(func() {
-		fmt.Println("listening")
+		fmt.Println("listening", svc.InstanceName, svc.HTTPPort)
 	})
 }
