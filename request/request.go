@@ -1,6 +1,7 @@
 package request
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/gig/orion-go-sdk/codec/msgpack"
@@ -35,10 +36,24 @@ func New() *Request {
 	}
 }
 
+// Increases by one the propagation level. If missing, it sets to one.
+func increasePropagationLevel(r interfaces.Request) {
+	propagationLevelS, ok := r.GetMeta()["propagation"]
+
+	if !ok {
+		propagationLevelS = "0"
+	}
+
+	propagationLevel, _ := strconv.Atoi(propagationLevelS)
+	propagationLevel += 1
+	r.GetMeta()["propagation"] = strconv.Itoa(propagationLevel)
+}
+
 // Merge the meta data
 // Needed for cross service communication
 func Merge(from, to interfaces.Request) {
 	to.SetMeta(from.GetMeta())
+	increasePropagationLevel(to)
 }
 
 // GetID for req - used for tracing and logging
