@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gig/orion-go-sdk/env"
 	"github.com/go-chi/chi"
 )
 
@@ -56,6 +57,10 @@ func InstallHealthcheck(router chi.Router, endpointPath string) {
 			w.WriteHeader(500)
 			// TODO: Handle this error
 			_, _ = w.Write([]byte(summaryString))
+
+			if env.Truthy("HEALTH_CHECK_STDOUT_DEBUG") {
+				fmt.Println("[healthcheck]", summaryString)
+			}
 		}
 	})
 }
