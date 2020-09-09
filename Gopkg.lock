@@ -85,12 +85,32 @@
   version = "v1"
 
 [[projects]]
+  digest = "1:b0507210d286ef45cac3af88d5be7abbfdda35fc354ee51db1014e33212f182a"
+  name = "github.com/opentracing/opentracing-go"
+  packages = [
+    ".",
+    "ext",
+    "log",
+  ]
+  pruneopts = ""
+  revision = "d34af3eaa63c4d08ab54863a4bdd0daa45212e12"
+  version = "v1.2.0"
+
+[[projects]]
   digest = "1:ebefa6494fc7582b57a3ddbd8849bb8ddc87a6560f8de3d4098543898bdef087"
   name = "github.com/panjf2000/ants"
   packages = ["."]
   pruneopts = ""
   revision = "e73db1d7d226408976ed89d514588a5fee7e87fa"
   version = "v2.1.0"
+
+[[projects]]
+  digest = "1:c45802472e0c06928cd997661f2af610accd85217023b1d5f6331bebce0671d3"
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  pruneopts = ""
+  revision = "614d223910a179a466c1767a985424175c39b465"
+  version = "v0.9.1"
 
 [[projects]]
   digest = "1:256484dbbcd271f9ecebc6795b2df8cad4c458dd0f5fd82a8c2fa0c29f233411"
@@ -123,6 +143,49 @@
   pruneopts = ""
   revision = "b91bfb9ebec76498946beb6af7c0230c7cc7ba6c"
   version = "v1.2.0"
+
+[[projects]]
+  digest = "1:53d327353fe718eeb2810f1c43ab71540a35d1b14b28f2c11c18dc0b96b7c41b"
+  name = "github.com/uber/jaeger-client-go"
+  packages = [
+    ".",
+    "config",
+    "internal/baggage",
+    "internal/baggage/remote",
+    "internal/reporterstats",
+    "internal/spanlog",
+    "internal/throttler",
+    "internal/throttler/remote",
+    "log",
+    "rpcmetrics",
+    "thrift",
+    "thrift-gen/agent",
+    "thrift-gen/baggage",
+    "thrift-gen/jaeger",
+    "thrift-gen/sampling",
+    "thrift-gen/zipkincore",
+    "transport",
+    "utils",
+  ]
+  pruneopts = ""
+  revision = "121ee6fb26fd9617fc30d0d95569a39c30ca3b76"
+  version = "v2.25.0"
+
+[[projects]]
+  digest = "1:6afbf06917cb67a1a895aecd38ff31bd691f4fad239e5ce468f2265359bee7b7"
+  name = "github.com/uber/jaeger-lib"
+  packages = ["metrics"]
+  pruneopts = ""
+  revision = "a87ae9d84fb038a8d79266298970720be7c80fcd"
+  version = "v2.2.0"
+
+[[projects]]
+  digest = "1:6cd0c56c18047e5c0cdcd8b4b4a578e56ce0c087daf415f65a3528d093194102"
+  name = "go.uber.org/atomic"
+  packages = ["."]
+  pruneopts = ""
+  revision = "845920076a298bdb984fb0f1b86052e4ca0a281c"
+  version = "v1.6.0"
 
 [[projects]]
   branch = "master"
@@ -160,10 +223,12 @@
     "github.com/go-chi/chi",
     "github.com/nats-io/go-nats",
     "github.com/op/go-logging",
+    "github.com/opentracing/opentracing-go",
     "github.com/panjf2000/ants",
     "github.com/satori/go.uuid",
     "github.com/segmentio/kafka-go",
     "github.com/stretchr/testify/assert",
+    "github.com/uber/jaeger-client-go/config",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

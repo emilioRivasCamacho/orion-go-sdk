@@ -2,11 +2,12 @@ package tracer
 
 import (
 	"fmt"
+	"github.com/opentracing/opentracing-go/ext"
+	"io"
 	"os"
 
-	opentracing "github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/ext"
-	zipkin "github.com/openzipkin/zipkin-go-opentracing"
+	"github.com/opentracing/opentracing-go"
+	"github.com/uber/jaeger-client-go/config"
 
 	"github.com/gig/orion-go-sdk/env"
 	"github.com/gig/orion-go-sdk/interfaces"
@@ -30,78 +31,66 @@ var (
 	// Endpoint of the collector
 	Endpoint = ""
 
-	// collector for the tracer
-	collector zipkin.Collector
-
-	// tracer implementation
-	tracer opentracing.Tracer
 )
 
 // Tracer for orion
 type Tracer struct {
+	tracer opentracing.Tracer
+	closer io.Closer
 }
 
-// Close req tracer
-type Close = func()
+
+func (t Tracer) Close() error {
+	return t.closer.Close()
+}
+
+var _ io.Closer = (*Tracer)(nil)
 
 func init() {
 	setVariables()
 }
 
-// New zipkin tracer
-func New(service string) Tracer {
+// New Jaeger tracer
+func New(service string) *Tracer {
+	cfg, err := config.FromEnv()
 
-	if enabled {
-
-		c, err := zipkin.NewHTTPCollector(Endpoint)
-		if err != nil {
-			fmt.Printf("unable to create Zipkin HTTP collector: %+v\n", err)
-			os.Exit(1)
-		}
-		collector = c
-
-		recorder := zipkin.NewRecorder(collector, Debug, HostAddr, service)
-
-		t, err := zipkin.NewTracer(
-			recorder,
-			zipkin.ClientServerSameSpan(SameSpan),
-			zipkin.TraceID128Bit(TraceID128Bit),
-		)
-		if err != nil {
-			fmt.Printf("unable to create Zipkin tracer: %+v\n", err)
-			os.Exit(1)
-		}
-
-		tracer = t
-
-		opentracing.InitGlobalTracer(tracer)
-
+	if err != nil {
+		fmt.Printf("cannot parse Jaeger env vars: %+v\n", err)
+		os.Exit(1)
 	}
 
-	return Tracer{}
+	cfg.ServiceName = service
+	cfg.Sampler.Type = "const"
+	cfg.Sampler.Param = 1
+
+	tracer, closer, err := cfg.NewTracer(config.Gen128Bit(true))
+
+	if err != nil {
+		fmt.Printf("unable to create tracer: %+v\n", err)
+		os.Exit(1)
+	}
+
+	opentracing.SetGlobalTracer(tracer)
+
+	return &Tracer{tracer, closer}
 }
 
-// Trace request
-func (t Tracer) Trace(req interfaces.Request) Close {
+//Trace request
+func (t *Tracer) Trace(req interfaces.Request) {
 	var span opentracing.Span
-	if enabled {
-		ctx, _ := tracer.Extract(opentracing.TextMap, opentracing.HTTPHeadersCarrier(req.GetTracerData()))
-		span = tracer.StartSpan(req.GetPath(), opentracing.ChildOf(ctx))
-		ext.SpanKindRPCClient.Set(span)
 
-		headers := opentracing.HTTPHeadersCarrier(map[string][]string{})
+	ctx, _ := tracer.Extract(opentracing.TextMap, opentracing.HTTPHeadersCarrier(req.GetTracerData()))
+	span = tracer.StartSpan(req.GetPath(), opentracing.ChildOf(ctx))
+	ext.SpanKindRPCClient.Set(span)
 
-		tracer.Inject(span.Context(), opentracing.TextMap, headers)
+	headers := opentracing.HTTPHeadersCarrier(map[string][]string{})
 
-		req.SetTracerData(headers)
-		req.SetID(headers["X-B3-Traceid"][0])
-	}
+	tracer.Inject(span.Context(), opentracing.TextMap, headers)
 
-	return func() {
-		if enabled {
-			span.Finish()
-		}
-	}
+	req.SetTracerData(headers)
+
+
+	span.Finish()
 }
 
 func setVariables() {

@@ -31,6 +31,9 @@ var (
 	threadPoolSize = env.Get("THREADPOOL_SIZE", strconv.Itoa(defaultThreadPoolSize))
 )
 
+type nullCloser struct{}
+func (*nullCloser) Close() error { return nil }
+
 // Factory func type - the one that creates the req obj
 type Factory = func() interfaces.Request
 
@@ -41,8 +44,8 @@ type Service struct {
 	Timeout             int
 	Codec               interfaces.Codec
 	Transport           interfaces.Transport
-	Tracer              interfaces.Tracer
 	Logger              interfaces.Logger
+	Tracer              tracer.Tracer
 	ThreadPool          *ants.PoolWithFunc
 	HealthChecks        []health.Dependency
 	StopHealthCheck     chan struct{}
@@ -85,10 +88,6 @@ func New(name string, options ...Option) *Service {
 	// as for now, the codec will always be msgpack
 	opts.Codec = msgpack.New()
 
-	if opts.Tracer == nil {
-		opts.Tracer = tracer.New(name)
-	}
-
 	if opts.Logger == nil {
 		opts.Logger = logger.New(name, verbose)
 	}
@@ -116,7 +115,7 @@ func New(name string, options ...Option) *Service {
 		Timeout:             200,
 		Codec:               opts.Codec,
 		Transport:           opts.Transport,
-		Tracer:              opts.Tracer,
+		Tracer:              tracer.New(name),
 		Logger:              opts.Logger,
 		ThreadPool:          workerPool,
 		HealthChecks:        make([]health.Dependency, 0),
@@ -226,7 +225,7 @@ func (s *Service) Call(req interfaces.Request, raw interface{}) {
 	res, ok := raw.(interfaces.Response)
 	checkResponseCast(ok)
 
-	closeTracer := s.Tracer.Trace(req)
+	s.Tracer.Trace(req)
 
 	encoded, err := s.Codec.Encode(req)
 	if err != nil {
@@ -257,8 +256,6 @@ func (s *Service) Call(req interfaces.Request, raw interface{}) {
 
 		return
 	}
-
-	closeTracer()
 }
 
 type responseWithAnyPayload struct {

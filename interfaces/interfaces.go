@@ -55,10 +55,5 @@ type Request interface {
 	SetError(error) Request
 }
 
-// Tracer interface
-type Tracer interface {
-	Trace(Request) func()
-}
-
 // Logger interface
 type Logger = logger.Logger
