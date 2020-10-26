@@ -20,12 +20,12 @@ var (
 	// GraylogPort env var
 	GraylogPort = ""
 	host        = env.Get("HOST", "")
-	log         *logging.Logger
 	minLogLevel = env.Get("ORION_LOGGER_LEVEL", "debug")
 )
 
 // Graylog logger
 type Graylog struct {
+	log     *logging.Logger
 	client  *client.Gelf
 	service string
 	verbose bool
@@ -35,7 +35,7 @@ type Graylog struct {
 type Logger interface {
 	CreateMessage(message string) *Message
 	IsVerbose() bool
-	Send(string)
+	Send(int, string)
 }
 
 func init() {
@@ -44,7 +44,7 @@ func init() {
 
 // New graylog logger
 func New(serviceName string, verbose bool) *Graylog {
-	initConsoleLogger(serviceName)
+	log := initConsoleLogger(serviceName)
 
 	port, err := strconv.Atoi(GraylogPort)
 	if err != nil {
@@ -57,6 +57,7 @@ func New(serviceName string, verbose bool) *Graylog {
 	})
 
 	return &Graylog{
+		log:     log,
 		client:  c,
 		service: serviceName,
 		verbose: verbose,
@@ -78,7 +79,10 @@ func (g *Graylog) CreateMessage(message string) *Message {
 }
 
 // Send message to graylog
-func (g *Graylog) Send(m string) {
+func (g *Graylog) Send(level int, m string) {
+	if g.IsVerbose() {
+		g.stdout(level, m)
+	}
 	g.client.Send(m)
 }
 
@@ -159,34 +163,34 @@ func (m *Message) Send() {
 	b, _ := json.Marshal(m.args)
 	data := string(b)
 
-	if m.logger.IsVerbose() {
-		m.log(data)
+	if m.args["level"] == nil {
+		m.args["level"] = DEBUG
 	}
 
-	m.logger.Send(data)
+	m.logger.Send(m.args["level"].(int), data)
 }
 
-func (m *Message) log(data string) {
+func (g *Graylog) stdout(level int, data string) {
 
-	switch m.args["level"] {
+	switch level {
 	case EMERGENCY:
-		log.Critical("Emergency %s", data)
+		g.log.Critical("Emergency %s", data)
 	case CRITICAL:
-		log.Critical("Critical %s", data)
+		g.log.Critical("Critical %s", data)
 	case ERROR:
-		log.Error("Error %s", data)
+		g.log.Error("Error %s", data)
 	case ALERT:
-		log.Warning("Alert %s", data)
+		g.log.Warning("Alert %s", data)
 	case WARNING:
-		log.Warning("Warning %s", data)
+		g.log.Warning("Warning %s", data)
 	case NOTICE:
-		log.Notice("Notice %s", data)
+		g.log.Notice("Notice %s", data)
 	case INFO:
-		log.Debug("Info %s", data)
+		g.log.Debug("Info %s", data)
 	case DEBUG:
-		log.Info("Debug %s", data)
+		g.log.Info("Debug %s", data)
 	default:
-		log.Info("Debug %s", data)
+		g.log.Info("Debug %s", data)
 	}
 }
 
@@ -199,11 +203,12 @@ func setVariables() {
 	}
 }
 
-func initConsoleLogger(serviceName string) {
-	log = logging.MustGetLogger(serviceName)
+func initConsoleLogger(serviceName string) *logging.Logger {
+	log := logging.MustGetLogger(serviceName)
 	backend := logging.NewLogBackend(os.Stdout, "", 0)
 	format := logging.MustStringFormatter(
 		`%{color}%{time:15:04:05.000} | %{module} ▶ %{color:reset} %{message}`,
 	)
 	logging.SetBackend(logging.NewBackendFormatter(backend, format))
+	return log
 }
