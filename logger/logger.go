@@ -21,6 +21,8 @@ var (
 	GraylogPort = ""
 	host        = env.Get("HOST", "")
 	minLogLevel = env.Get("ORION_LOGGER_LEVEL", "debug")
+	verbose     = env.Truthy("VERBOSE")
+	stdoutOnly  = env.Truthy("LOGGER_STDOUT_ONLY")
 )
 
 // Graylog logger
@@ -28,13 +30,11 @@ type Graylog struct {
 	log     *logging.Logger
 	client  *client.Gelf
 	service string
-	verbose bool
 }
 
 // Logger interface
 type Logger interface {
 	CreateMessage(message string) *Message
-	IsVerbose() bool
 	Send(int, string)
 }
 
@@ -43,7 +43,7 @@ func init() {
 }
 
 // New graylog logger
-func New(serviceName string, verbose bool) *Graylog {
+func New(serviceName string) *Graylog {
 	log := initConsoleLogger(serviceName)
 
 	port, err := strconv.Atoi(GraylogPort)
@@ -60,7 +60,6 @@ func New(serviceName string, verbose bool) *Graylog {
 		log:     log,
 		client:  c,
 		service: serviceName,
-		verbose: verbose,
 	}
 }
 
@@ -80,14 +79,13 @@ func (g *Graylog) CreateMessage(message string) *Message {
 
 // Send message to graylog
 func (g *Graylog) Send(level int, m string) {
-	if g.IsVerbose() {
+	if verbose || stdoutOnly {
 		g.stdout(level, m)
 	}
+	if stdoutOnly {
+		return
+	}
 	g.client.Send(m)
-}
-
-func (g *Graylog) IsVerbose() bool {
-	return g.verbose
 }
 
 // Message object

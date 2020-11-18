@@ -26,7 +26,6 @@ import (
 const defaultThreadPoolSize = 1
 
 var (
-	verbose        = env.Truthy("VERBOSE")
 	threadPoolSize = env.Get("THREADPOOL_SIZE", strconv.Itoa(defaultThreadPoolSize))
 )
 
@@ -84,7 +83,7 @@ func New(name string, options ...Option) *Service {
 	opts.Codec = msgpack.New()
 
 	if opts.Logger == nil {
-		opts.Logger = logger.New(name, verbose)
+		opts.Logger = logger.New(name)
 	}
 
 	uid, _ := uuid.NewV4()
