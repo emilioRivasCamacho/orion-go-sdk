@@ -150,10 +150,14 @@ func (s *Service) Decode(data []byte, to interface{}) error {
 	return s.Codec.Decode(data, &to)
 }
 
-// HandleWithoutLogging enabled
+// HandleWithoutLogging works the same as Handle but with disabled logging
 func (s *Service) HandleWithoutLogging(path string, handler interface{}, factory Factory) {
-	logging := false
-	s.handle(path, logging, handler, factory)
+	s.handle(path, logger.NONE, handler, factory)
+}
+
+// HandleWithCustomLogLevel works the same as Handle but it lets you set the log level
+func (s *Service) HandleWithCustomLogLevel(path string, logLevel int, handler interface{}, factory Factory) {
+	s.handle(path, logLevel, handler, factory)
 }
 
 // Handle has enabled logging. What that means is when the request
@@ -161,11 +165,10 @@ func (s *Service) HandleWithoutLogging(path string, handler interface{}, factory
 // response is returned, the service will check for error and if there is such,
 // the error will be logged
 func (s *Service) Handle(path string, handler interface{}, factory Factory) {
-	logging := true
-	s.handle(path, logging, handler, factory)
+	s.handle(path, logger.INFO, handler, factory)
 }
 
-func (s *Service) handle(path string, logging bool, handler interface{}, factory Factory) {
+func (s *Service) handle(path string, logLevel int, handler interface{}, factory Factory) {
 	route := s.getRouteFromPath(path)
 
 	method := reflect.ValueOf(handler)
@@ -178,7 +181,7 @@ func (s *Service) handle(path string, logging bool, handler interface{}, factory
 			err := s.Codec.Decode(data, req)
 			req.SetError(err)
 
-			s.logRequest(err, req, logging)
+			s.logRequest(err, req, logLevel)
 
 			if err != nil {
 				panic(err)
@@ -186,7 +189,7 @@ func (s *Service) handle(path string, logging bool, handler interface{}, factory
 
 			res := method.Call([]reflect.Value{reflect.ValueOf(req)})[0].Interface()
 
-			s.logResponse(req, res, logging)
+			s.logResponse(req, res, logLevel)
 
 			b, err := s.Codec.Encode(res)
 			if err != nil {
@@ -304,8 +307,8 @@ func (s *Service) String() string {
 	return fmt.Sprintf("%s-%s", s.Name, s.ID)
 }
 
-func (s *Service) logRequest(err error, raw interface{}, logging bool) {
-	if logging {
+func (s *Service) logRequest(err error, raw interface{}, logLevel int) {
+	if logLevel != logger.NONE {
 
 		req, ok := raw.(interfaces.Request)
 		checkRequestCast(ok)
@@ -328,7 +331,7 @@ func (s *Service) logRequest(err error, raw interface{}, logging bool) {
 			"meta":   req.GetMeta(),
 		}
 
-		level := logger.INFO
+		level := logLevel
 		if err != nil {
 			level = logger.ERROR
 			params["error"] = err.Error()
@@ -343,8 +346,8 @@ func (s *Service) logRequest(err error, raw interface{}, logging bool) {
 	}
 }
 
-func (s Service) logResponse(rawReq, rawRes interface{}, logging bool) {
-	if logging {
+func (s Service) logResponse(rawReq, rawRes interface{}, logLevel int) {
+	if logLevel != logger.NONE {
 
 		req, ok := rawReq.(interfaces.Request)
 		checkResponseCast(ok)
@@ -356,7 +359,7 @@ func (s Service) logResponse(rawReq, rawRes interface{}, logging bool) {
 		if err != nil {
 			s.Logger.
 				CreateMessage(req.GetPath()).
-				SetLevel(logger.ERROR).
+				SetLevel(logLevel).
 				SetID(req.GetID()).
 				SetLineOfCode(err.LOC).
 				SetParams(err).

@@ -17,6 +17,8 @@ const (
 	INFO
 	// DEBUG level
 	DEBUG
+	// NONE level - do not log at all
+	NONE
 )
 
 func levelToNumber(level string) int {
