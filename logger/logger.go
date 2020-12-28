@@ -20,7 +20,7 @@ var (
 	// GraylogPort env var
 	GraylogPort = ""
 	host        = env.Get("HOST", "")
-	minLogLevel = env.Get("ORION_LOGGER_LEVEL", "debug")
+	minLogLevel = env.Get("ORION_LOGGER_LEVEL", "info")
 	verbose     = env.Truthy("VERBOSE")
 	stdoutOnly  = env.Truthy("LOGGER_STDOUT_ONLY")
 )
@@ -103,7 +103,7 @@ func (m *Message) SetLevel(level int) *Message {
 // ShouldSkip checks the log level and do not log the messag if the level is too low
 func (m *Message) ShouldSkip() bool {
 	level := levelToNumber(minLogLevel)
-	msgLevel := DEBUG
+	msgLevel := NONE
 	if m.args["level"] != nil {
 		msgLevel = m.args["level"].(int)
 	}
