@@ -73,6 +73,7 @@ func (g *Graylog) CreateMessage(message string) *Message {
 	m.args["host"] = g.service
 	m.args["message"] = message
 	m.args["timestamp"] = float64(time.Now().UnixNano()) / float64(time.Second)
+	m.args["level"] = INFO
 
 	return m
 }
@@ -103,15 +104,9 @@ func (m *Message) SetLevel(level int) *Message {
 // ShouldSkip checks the log level and do not log the messag if the level is too low
 func (m *Message) ShouldSkip() bool {
 	level := levelToNumber(minLogLevel)
-	msgLevel := NONE
-	if m.args["level"] != nil {
-		msgLevel = m.args["level"].(int)
-	}
+	msgLevel := m.args["level"].(int)
 
-	if level < msgLevel {
-		return true
-	}
-	return false
+	return level < msgLevel
 }
 
 // SetID for message
